@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Finanzen</title>
+
+<!-- ====================================================================== -->
+<!--  KONFIGURATION  –  hier stehen deine zwei Supabase-Werte.              -->
+<!--  Der publishable Key darf öffentlich sein; geschützt wird über RLS.    -->
+<!-- ====================================================================== -->
+<script>
+  const SUPABASE_URL = "https://vyejsdhgncoshdrkuccf.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_Oxn462J3gLly84DsE8jPZA_HANa4jb4";
+</script>
+
+<!-- Externe Bibliotheken (von CDN, kein Installieren nötig) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<style>
+  :root {
+    --bg: #0f1115; --panel: #1a1d24; --panel2: #222630; --border: #2c313c;
+    --text: #e6e8ec; --muted: #9aa3b2; --accent: #3b82f6; --accent-hover: #2f6fd6;
+    --green: #22c55e; --red: #ef4444; --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5;
+  }
+  button {
+    font: inherit; cursor: pointer; border: none; border-radius: 8px;
+    padding: 9px 16px; background: var(--accent); color: #fff; font-weight: 600;
+  }
+  button:hover { background: var(--accent-hover); }
+  button.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+  button.secondary:hover { background: var(--border); }
+  button.danger { background: transparent; color: var(--red); padding: 4px 8px; font-weight: 500; }
+  button.danger:hover { background: rgba(239,68,68,0.12); }
+  button.link { background: transparent; color: var(--accent); padding: 4px 8px; font-weight: 500; }
+  input, select {
+    font: inherit; background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; width: 100%;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+  .hidden { display: none !important; }
+
+  /* ---- Login ---- */
+  #login-view {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .login-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 32px; width: 100%; max-width: 380px;
+  }
+  .login-card h1 { margin: 0 0 4px; font-size: 22px; }
+  .login-card p.sub { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
+  .login-card .field { margin-bottom: 16px; }
+  .login-card button { width: 100%; margin-top: 6px; }
+  .msg { font-size: 14px; margin-top: 14px; padding: 10px 12px; border-radius: 8px; }
+  .msg.error { background: rgba(239,68,68,0.12); color: #fca5a5; }
+  .msg.ok { background: rgba(34,197,94,0.12); color: #86efac; }
+
+  /* ---- App ---- */
+  header.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--panel);
+  }
+  header.topbar .brand { font-weight: 700; font-size: 17px; }
+  header.topbar .user { color: var(--muted); font-size: 14px; margin-right: 14px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .stat .k { color: var(--muted); font-size: 13px; }
+  .stat .v { font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 24px;
+  }
+  .panel h2 { margin: 0 0 16px; font-size: 16px; }
+  .row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; align-items: end; }
+  .row .actions { display: flex; gap: 8px; }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar .grow { flex: 1; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; white-space: nowrap; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .empty { color: var(--muted); padding: 30px; text-align: center; }
+
+  @media (max-width: 760px) {
+    .cards { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================ LOGIN ============================ -->
+<div id="login-view">
+  <div class="login-card">
+    <h1>Finanzen</h1>
+    <p class="sub">Bitte melde dich mit deinen Zugangsdaten an.</p>
+    <form id="login-form">
+      <div class="field">
+        <label for="email">E-Mail</label>
+        <input id="email" type="email" autocomplete="username" required />
+      </div>
+      <div class="field">
+        <label for="password">Passwort</label>
+        <input id="password" type="password" autocomplete="current-password" required />
+      </div>
+      <button type="submit" id="login-btn">Anmelden</button>
+    </form>
+    <div id="login-msg"></div>
+  </div>
+</div>
+
+<!-- ============================ APP ============================ -->
+<div id="app-view" class="hidden">
+  <header class="topbar">
+    <div class="brand">Finanzen</div>
+    <div>
+      <span class="user" id="user-email"></span>
+      <button class="secondary" id="logout-btn">Abmelden</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Übersicht -->
+    <div class="cards">
+      <div class="stat"><div class="k">Einnahmen (Haben)</div><div class="v pos" id="sum-haben">–</div></div>
+      <div class="stat"><div class="k">Ausgaben (Soll)</div><div class="v neg" id="sum-soll">–</div></div>
+      <div class="stat"><div class="k">Saldo</div><div class="v" id="sum-saldo">–</div></div>
+    </div>
+
+    <!-- CSV-Import -->
+    <div class="panel">
+      <h2>CSV importieren</h2>
+      <div class="toolbar">
+        <input type="file" id="csv-file" accept=".csv" class="grow" />
+        <button id="csv-import-btn">Importieren</button>
+      </div>
+      <div id="csv-msg"></div>
+      <p style="color:var(--muted);font-size:13px;margin:8px 0 0">
+        Erwartete Spalten (Trennzeichen <b>;</b>): Buchungsdatum; Beschreibung; Soll Euro; Haben Euro; Kategorie; Bank
+      </p>
+    </div>
+
+    <!-- Eintrag hinzufügen / bearbeiten -->
+    <div class="panel">
+      <h2 id="form-title">Eintrag hinzufügen</h2>
+      <form id="entry-form">
+        <input type="hidden" id="entry-id" />
+        <div class="row">
+          <div><label>Buchungsdatum</label><input type="date" id="f-datum" /></div>
+          <div><label>Beschreibung</label><input type="text" id="f-beschreibung" /></div>
+          <div><label>Soll € (Ausgabe)</label><input type="number" step="0.01" id="f-soll" /></div>
+          <div><label>Haben € (Eingang)</label><input type="number" step="0.01" id="f-haben" /></div>
+          <div><label>Kategorie</label><input type="text" id="f-kategorie" /></div>
+          <div><label>Bank</label><input type="text" id="f-bank" /></div>
+        </div>
+        <div class="actions" style="margin-top:14px">
+          <button type="submit" id="entry-save">Speichern</button>
+          <button type="button" class="secondary hidden" id="entry-cancel">Abbrechen</button>
+        </div>
+      </form>
+      <div id="entry-msg"></div>
+    </div>
+
+    <!-- Tabelle -->
+    <div class="panel">
+      <div class="toolbar">
+        <h2 style="margin:0" class="grow">Transaktionen (<span id="count">0</span>)</h2>
+        <input type="text" id="search" placeholder="Suchen…" style="max-width:240px" />
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Datum</th><th>Beschreibung</th><th>Kategorie</th><th>Bank</th>
+              <th style="text-align:right">Soll</th><th style="text-align:right">Haben</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="empty" class="empty hidden">Noch keine Einträge. Importiere eine CSV oder füge oben einen Eintrag hinzu.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ======================================================================
+//  Supabase-Client
+// ======================================================================
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const loginView = document.getElementById("login-view");
+const appView   = document.getElementById("app-view");
+let allRows = [];   // lokaler Cache der geladenen Zeilen
+
+// ---------- Hilfsfunktionen ----------
+const euro = (n) => (n == null ? "" : Number(n).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €");
+function showMsg(el, text, type) { el.innerHTML = text ? `<div class="msg ${type}">${text}</div>` : ""; }
+
+// "19.06.26" -> "2026-06-19" ; akzeptiert auch ISO-Datum
+function parseDate(v) {
+  if (!v) return null;
+  v = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
+  const m = v.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+  if (!m) return null;
+  let [, d, mo, y] = m;
+  if (y.length === 2) y = "20" + y;
+  return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+// "-64,63 € " -> -64.63 ; "1.234,56" -> 1234.56 ; "0" -> 0
+function parseAmount(v) {
+  if (v == null || v === "") return null;
+  let s = String(v).replace(/[€\s ]/g, "").replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+// ======================================================================
+//  Auth
+// ======================================================================
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("login-btn");
+  btn.disabled = true; btn.textContent = "Anmelden…";
+  showMsg(document.getElementById("login-msg"), "", "");
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = "Anmelden";
+  if (error) showMsg(document.getElementById("login-msg"), "Anmeldung fehlgeschlagen: " + error.message, "error");
+});
+
+document.getElementById("logout-btn").addEventListener("click", async () => { await sb.auth.signOut(); });
+
+sb.auth.onAuthStateChange((_event, session) => {
+  if (session) {
+    loginView.classList.add("hidden");
+    appView.classList.remove("hidden");
+    document.getElementById("user-email").textContent = session.user.email;
+    loadData();
+  } else {
+    appView.classList.add("hidden");
+    loginView.classList.remove("hidden");
+    document.getElementById("password").value = "";
+  }
+});
+
+// ======================================================================
+//  Daten laden + anzeigen
+// ======================================================================
+async function loadData() {
+  const { data, error } = await sb.from("transactions")
+    .select("*")
+    .order("buchungsdatum", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) { console.error(error); return; }
+  allRows = data || [];
+  render();
+}
+
+function render() {
+  const q = document.getElementById("search").value.toLowerCase();
+  const rows = allRows.filter((r) =>
+    !q || [r.beschreibung, r.kategorie, r.bank].some((x) => (x || "").toLowerCase().includes(q))
+  );
+
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  rows.forEach((r) => {
+    const tr = document.createElement("tr");
+    const datum = r.buchungsdatum ? new Date(r.buchungsdatum).toLocaleDateString("de-DE") : "";
+    tr.innerHTML = `
+      <td>${datum}</td>
+      <td>${esc(r.beschreibung)}</td>
+      <td>${esc(r.kategorie)}</td>
+      <td>${esc(r.bank)}</td>
+      <td class="num neg">${r.soll != null ? euro(r.soll) : ""}</td>
+      <td class="num pos">${r.haben != null ? euro(r.haben) : ""}</td>
+      <td class="num">
+        <button class="link" data-edit="${r.id}">Bearbeiten</button>
+        <button class="danger" data-del="${r.id}">Löschen</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("count").textContent = rows.length;
+  document.getElementById("empty").classList.toggle("hidden", allRows.length > 0);
+
+  // Summen (über alle Zeilen, nicht nur gefilterte)
+  let soll = 0, haben = 0;
+  allRows.forEach((r) => { soll += Number(r.soll) || 0; haben += Number(r.haben) || 0; });
+  document.getElementById("sum-haben").textContent = euro(haben);
+  document.getElementById("sum-soll").textContent = euro(soll);
+  const saldo = haben + soll; // soll ist i.d.R. negativ
+  const saldoEl = document.getElementById("sum-saldo");
+  saldoEl.textContent = euro(saldo);
+  saldoEl.className = "v " + (saldo >= 0 ? "pos" : "neg");
+}
+function esc(s) { return (s == null ? "" : String(s)).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+
+document.getElementById("search").addEventListener("input", render);
+
+// Klicks in der Tabelle (Bearbeiten / Löschen)
+document.getElementById("tbody").addEventListener("click", async (e) => {
+  const delId = e.target.getAttribute("data-del");
+  const editId = e.target.getAttribute("data-edit");
+  if (delId) {
+    if (!confirm("Diesen Eintrag wirklich löschen?")) return;
+    const { error } = await sb.from("transactions").delete().eq("id", delId);
+    if (error) alert("Fehler: " + error.message); else loadData();
+  }
+  if (editId) {
+    const r = allRows.find((x) => x.id === editId);
+    if (r) startEdit(r);
+  }
+});
+
+// ======================================================================
+//  Eintrag hinzufügen / bearbeiten
+// ======================================================================
+const entryForm = document.getElementById("entry-form");
+
+function startEdit(r) {
+  document.getElementById("entry-id").value = r.id;
+  document.getElementById("f-datum").value = r.buchungsdatum || "";
+  document.getElementById("f-beschreibung").value = r.beschreibung || "";
+  document.getElementById("f-soll").value = r.soll ?? "";
+  document.getElementById("f-haben").value = r.haben ?? "";
+  document.getElementById("f-kategorie").value = r.kategorie || "";
+  document.getElementById("f-bank").value = r.bank || "";
+  document.getElementById("form-title").textContent = "Eintrag bearbeiten";
+  document.getElementById("entry-cancel").classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function resetForm() {
+  entryForm.reset();
+  document.getElementById("entry-id").value = "";
+  document.getElementById("form-title").textContent = "Eintrag hinzufügen";
+  document.getElementById("entry-cancel").classList.add("hidden");
+  showMsg(document.getElementById("entry-msg"), "", "");
+}
+document.getElementById("entry-cancel").addEventListener("click", resetForm);
+
+entryForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = document.getElementById("entry-id").value;
+  const payload = {
+    buchungsdatum: document.getElementById("f-datum").value || null,
+    beschreibung: document.getElementById("f-beschreibung").value || null,
+    soll: document.getElementById("f-soll").value === "" ? null : Number(document.getElementById("f-soll").value),
+    haben: document.getElementById("f-haben").value === "" ? null : Number(document.getElementById("f-haben").value),
+    kategorie: document.getElementById("f-kategorie").value || null,
+    bank: document.getElementById("f-bank").value || null,
+  };
+  let error;
+  if (id) ({ error } = await sb.from("transactions").update(payload).eq("id", id));
+  else    ({ error } = await sb.from("transactions").insert([payload]));
+  if (error) { showMsg(document.getElementById("entry-msg"), "Fehler: " + error.message, "error"); return; }
+  resetForm();
+  loadData();
+});
+
+// ======================================================================
+//  CSV-Import
+// ======================================================================
+document.getElementById("csv-import-btn").addEventListener("click", () => {
+  const fileInput = document.getElementById("csv-file");
+  const msg = document.getElementById("csv-msg");
+  const file = fileInput.files[0];
+  if (!file) { showMsg(msg, "Bitte zuerst eine CSV-Datei auswählen.", "error"); return; }
+
+  Papa.parse(file, {
+    header: true, delimiter: ";", skipEmptyLines: true,
+    complete: async (results) => {
+      const rows = results.data.map((row) => {
+        // Spaltennamen tolerant finden (Groß/Klein, Leerzeichen)
+        const get = (name) => {
+          const key = Object.keys(row).find((k) => k.trim().toLowerCase() === name.toLowerCase());
+          return key ? row[key] : "";
+        };
+        return {
+          buchungsdatum: parseDate(get("Buchungsdatum")),
+          beschreibung: (get("Beschreibung") || "").trim() || null,
+          soll: parseAmount(get("Soll Euro")),
+          haben: parseAmount(get("Haben Euro")),
+          kategorie: (get("Kategorie") || "").trim() || null,
+          bank: (get("Bank") || "").trim() || null,
+        };
+      }).filter((r) => r.beschreibung || r.buchungsdatum || r.soll != null || r.haben != null);
+
+      if (rows.length === 0) { showMsg(msg, "Keine gültigen Zeilen gefunden. Prüfe die Spaltenüberschriften.", "error"); return; }
+
+      showMsg(msg, `Importiere ${rows.length} Zeilen…`, "ok");
+      const { error } = await sb.from("transactions").insert(rows);
+      if (error) { showMsg(msg, "Fehler beim Import: " + error.message, "error"); return; }
+      showMsg(msg, `${rows.length} Zeilen erfolgreich importiert.`, "ok");
+      fileInput.value = "";
+      loadData();
+    },
+    error: (err) => showMsg(msg, "CSV konnte nicht gelesen werden: " + err.message, "error"),
+  });
+});
+</script>
+</body>
+</html>
