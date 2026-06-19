@@ -20,9 +20,11 @@
 
 <style>
   :root {
-    --bg: #0f1115; --panel: #1a1d24; --panel2: #222630; --border: #2c313c;
-    --text: #e6e8ec; --muted: #9aa3b2; --accent: #3b82f6; --accent-hover: #2f6fd6;
-    --green: #22c55e; --red: #ef4444; --radius: 10px;
+    --bg: #FAFAFA; --panel: #FFFFFF; --panel2: #F2F4F7; --border: #E0E0E0;
+    --text: #1A1A1A; --muted: #6B6B6B; --accent: #2F5DA8; --accent-hover: #244A87;
+    --green: #2E7D32; --red: #C62828; --warning: #E0A800; --radius: 10px;
+    --primary-subtle: #E8EEF8; --success-subtle: #E6F2E7; --danger-subtle: #FBEAEA; --warning-subtle: #FCF3DB;
+    --chart-grey: #C4C4C4; --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
   }
   * { box-sizing: border-box; }
   body {
@@ -37,7 +39,7 @@
   button.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
   button.secondary:hover { background: var(--border); }
   button.danger { background: transparent; color: var(--red); padding: 4px 8px; font-weight: 500; }
-  button.danger:hover { background: rgba(239,68,68,0.12); }
+  button.danger:hover { background: rgba(198,40,40,0.12); }
   button.link { background: transparent; color: var(--accent); padding: 4px 8px; font-weight: 500; }
   input, select {
     font: inherit; background: var(--panel2); color: var(--text);
@@ -53,15 +55,47 @@
   }
   .login-card {
     background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 32px; width: 100%; max-width: 380px;
+    padding: 32px; width: 100%; max-width: 380px; box-shadow: var(--shadow-card);
   }
   .login-card h1 { margin: 0 0 4px; font-size: 22px; }
   .login-card p.sub { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
   .login-card .field { margin-bottom: 16px; }
   .login-card button { width: 100%; margin-top: 6px; }
   .msg { font-size: 14px; margin-top: 14px; padding: 10px 12px; border-radius: 8px; }
-  .msg.error { background: rgba(239,68,68,0.12); color: #fca5a5; }
-  .msg.ok { background: rgba(34,197,94,0.12); color: #86efac; }
+  .msg.error { background: var(--danger-subtle); color: var(--red); }
+  .msg.ok { background: var(--success-subtle); color: var(--green); }
+  .msg.warn { background: var(--warning-subtle); color: #8a6d00; }
+
+  /* ---- App-Layout mit Seitenmenü ---- */
+  .app-shell { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 220px; flex-shrink: 0; background: var(--panel);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 18px 14px;
+  }
+  .sidebar .brand { font-weight: 700; font-size: 18px; padding: 6px 10px 18px; }
+  .nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .nav-item {
+    display: block; padding: 10px 12px; border-radius: 8px; color: var(--muted);
+    text-decoration: none; font-weight: 500; font-size: 14px;
+  }
+  .nav-item:hover { background: var(--panel2); color: var(--text); }
+  .nav-item.active { background: var(--accent); color: #fff; }
+  .subnav { display: flex; flex-direction: column; margin: 2px 0 2px 14px; gap: 2px; border-left: 1px solid var(--border); padding-left: 6px; }
+  .subnav:empty { display: none; }
+  .subnav-item { display: block; padding: 6px 10px; border-radius: 7px; color: var(--muted); text-decoration: none; font-size: 13px; }
+  .subnav-item:hover { background: var(--panel2); color: var(--text); }
+  .subnav-item.active { background: var(--panel2); color: var(--text); font-weight: 600; }
+  .sidebar-footer { border-top: 1px solid var(--border); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .sidebar-footer .user { font-size: 13px; word-break: break-all; }
+  .content { flex: 1; min-width: 0; }
+  .page-title { font-weight: 700; font-size: 18px; }
+  @media (max-width: 760px) {
+    .app-shell { flex-direction: column; }
+    .sidebar { width: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .sidebar .brand { padding: 6px 10px; }
+    .nav { flex-direction: row; flex: 1; }
+    .sidebar-footer { border-top: none; padding-top: 0; flex-direction: row; align-items: center; }
+  }
 
   /* ---- App ---- */
   header.topbar {
@@ -69,17 +103,32 @@
     padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--panel);
   }
   header.topbar .brand { font-weight: 700; font-size: 17px; }
-  header.topbar .user { color: var(--muted); font-size: 14px; margin-right: 14px; }
+  header.topbar .user { color: var(--muted); font-size: 14px; }
+  .topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+  .daterange { display: flex; align-items: center; gap: 6px; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; }
+  .daterange label { margin: 0; font-size: 12px; color: var(--muted); }
+  .daterange input { width: auto; padding: 5px 6px; background: var(--bg); }
+  .daterange button { padding: 6px 10px; font-size: 13px; }
+  #tx-kk-filter { align-items: center; }
+  #tx-kk-filter button { padding: 6px 10px; font-size: 13px; }
+  #tx-kk-filter button.active-kk { background: var(--accent); color: #fff; }
+  .warnbox { position: relative; }
+  .warnbtn { background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; color: #8a6d00; display: flex; align-items: center; gap: 6px; }
+  .warnbtn:hover { background: var(--panel2); }
+  .warn-badge { background: #E0A800; color: #1A1A1A; border-radius: 999px; font-size: 11px; font-weight: 700; padding: 0 6px; min-width: 16px; text-align: center; }
+  .warn-dropdown { position: absolute; right: 0; top: calc(100% + 8px); width: 340px; max-width: 82vw; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); z-index: 30; font-size: 13px; }
+  .warn-dropdown h4 { margin: 0; font-size: 14px; color: #8a6d00; }
+  .warn-dropdown li { margin-bottom: 4px; }
   main { max-width: 1100px; margin: 0 auto; padding: 24px; }
 
   .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
-  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow-card); }
   .stat .k { color: var(--muted); font-size: 13px; }
   .stat .v { font-size: 22px; font-weight: 700; margin-top: 4px; }
 
   .panel {
     background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 20px; margin-bottom: 24px;
+    padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-card);
   }
   .panel h2 { margin: 0 0 16px; font-size: 16px; }
   .row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; align-items: end; }
@@ -94,11 +143,67 @@
   td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pos { color: var(--green); }
   .neg { color: var(--red); }
-  tr:hover td { background: rgba(255,255,255,0.02); }
+  tr:hover td { background: rgba(0,0,0,0.025); }
+  tr.group-row td { background: var(--panel2); font-weight: 600; border-top: 1px solid var(--border); }
   .empty { color: var(--muted); padding: 30px; text-align: center; }
 
+  /* ---- Auswertung ---- */
+  .breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .breakdown h3 { margin: 0 0 12px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .bar { height: 6px; background: var(--panel2); border-radius: 4px; margin: 3px 0; overflow: hidden; min-width: 70px; }
+  .bar-in { height: 100%; background: var(--green); }
+  .bar-out { height: 100%; background: var(--red); }
+  .barcell { width: 130px; }
+  @media (max-width: 760px) { .breakdown { grid-template-columns: 1fr; } }
+
+  /* ---- Chart ---- */
+  .chart-wrap { width: 100%; position: relative; }
+  .chart-wrap svg { width: 100%; height: auto; display: block; }
+  .chart-tip {
+    position: absolute; pointer-events: none; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+    font-size: 12px; line-height: 1.55; white-space: nowrap;
+    transform: translate(-50%, -115%); z-index: 5; box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+  }
+  .legend { display: flex; gap: 18px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+  /* ---- Dashboard-Cockpit ---- */
+  .cards-4 { grid-template-columns: repeat(4, 1fr); }
+  .hbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+  .hbar .hbar-label { width: 140px; flex-shrink: 0; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hbar .hbar-track { flex: 1; height: 10px; background: var(--panel2); border-radius: 5px; overflow: hidden; }
+  .hbar .hbar-fill { height: 100%; background: var(--red); }
+  .hbar .hbar-val { width: 110px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .donut-wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .donut-legend { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+  .donut-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+  /* ---- Immobilien-Karten ---- */
+  .immo-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-card); margin-bottom: 16px; overflow: hidden; }
+  .immo-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; }
+  .immo-head .titlewrap { flex: 1; min-width: 0; }
+  .immo-title { font-weight: 700; font-size: 16px; }
+  .immo-sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .immo-head .iconbtn { background: transparent; color: var(--muted); padding: 4px 7px; font-size: 16px; line-height: 1; }
+  .immo-head .iconbtn:hover { background: var(--panel2); color: var(--text); }
+  .immo-card.collapsed .immo-body { display: none; }
+  .immo-card.collapsed .chev { transform: rotate(-90deg); }
+  .chev { display: inline-block; transition: transform .15s; color: var(--muted); }
+  .immo-body { padding: 4px 18px 18px; }
+  .immo-section { margin-top: 18px; }
+  .immo-section h4 { margin: 0 0 10px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .immo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+  .kpibox { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .kpibox .kpi-k { font-size: 12px; color: var(--muted); }
+  .kpibox .kpi-v { font-size: 18px; font-weight: 700; margin-top: 4px; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+  .immo-actions { margin-top: 18px; display: flex; gap: 10px; align-items: center; }
+  @media (max-width: 760px) { .immo-grid { grid-template-columns: 1fr 1fr; } .kpi-grid { grid-template-columns: 1fr; } }
+
   @media (max-width: 760px) {
-    .cards { grid-template-columns: 1fr; }
+    .cards, .cards-4 { grid-template-columns: 1fr; }
     .row { grid-template-columns: 1fr 1fr; }
   }
 </style>
@@ -127,27 +232,167 @@
 
 <!-- ============================ APP ============================ -->
 <div id="app-view" class="hidden">
-  <header class="topbar">
-    <div class="brand">Finanzen</div>
-    <div>
-      <span class="user" id="user-email"></span>
-      <button class="secondary" id="logout-btn">Abmelden</button>
-    </div>
-  </header>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Finanzen</div>
+      <nav class="nav">
+        <a href="#" class="nav-item active" data-page="dashboard">Dashboard</a>
+        <a href="#" class="nav-item" data-page="banken">Banken</a>
+        <a href="#" class="nav-item" data-page="transaktionen">Transaktionen</a>
+        <div id="tx-submenu" class="subnav"></div>
+        <a href="#" class="nav-item" data-page="portfolio">ETF-Portfolio</a>
+        <div id="pf-submenu" class="subnav"></div>
+        <a href="#" class="nav-item" data-page="immobilien">Immobilien</a>
+        <div id="immo-submenu" class="subnav"></div>
+        <a href="#" class="nav-item" data-page="beteiligungen">Beteiligungen</a>
+        <a href="#" class="nav-item" data-page="pensionsfonds">Pensionsfonds</a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="user" id="user-email"></span>
+        <button class="secondary" id="logout-btn">Abmelden</button>
+      </div>
+    </aside>
+
+    <div class="content">
+      <header class="topbar">
+        <div class="page-title" id="page-title">Dashboard</div>
+        <div class="topbar-right">
+          <div class="warnbox" id="pf-warnbox" style="display:none">
+            <button class="warnbtn" id="pf-warnbtn" title="Hinweise zu möglicherweise fehlenden Werten">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span class="warn-badge" id="pf-warn-count">0</span>
+            </button>
+            <div class="warn-dropdown" id="pf-warn-dropdown" style="display:none"></div>
+          </div>
+          <div class="daterange">
+            <label>Von</label><input type="date" id="filter-von" />
+            <label>Bis</label><input type="date" id="filter-bis" />
+            <button class="secondary" id="filter-reset">Zurücksetzen</button>
+          </div>
+        </div>
+      </header>
 
   <main>
-    <!-- Übersicht -->
-    <div class="cards">
-      <div class="stat"><div class="k">Einnahmen (Haben)</div><div class="v pos" id="sum-haben">–</div></div>
-      <div class="stat"><div class="k">Ausgaben (Soll)</div><div class="v neg" id="sum-soll">–</div></div>
-      <div class="stat"><div class="k">Saldo</div><div class="v" id="sum-saldo">–</div></div>
+    <!-- ===== DASHBOARD ===== -->
+    <section id="page-dashboard">
+    <!-- Filterleiste -->
+    <div class="panel">
+      <div class="toolbar">
+        <span style="font-weight:600">Zeitraum:</span>
+        <button class="secondary" data-period="month">Dieser Monat</button>
+        <button class="secondary" data-period="year">Dieses Jahr</button>
+        <button class="secondary" data-period="all">Alles</button>
+      </div>
+      <div style="margin-top:10px">
+        <span style="font-weight:600;font-size:13px;color:var(--muted)">Banken:</span>
+        <div id="dash-bank-filter" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:6px"></div>
+      </div>
     </div>
 
-    <!-- CSV-Import -->
+    <!-- KPI-Kacheln (nur dein Anteil) -->
+    <div class="cards cards-4">
+      <div class="stat"><div class="k">Gesamtvermögen</div><div class="v" id="kpi-networth">–</div></div>
+      <div class="stat"><div class="k">Liquide Mittel</div><div class="v" id="kpi-liquid">–</div></div>
+      <div class="stat"><div class="k">Portfolio-Wert</div><div class="v" id="kpi-portfolio">–</div><div class="k" id="kpi-portfolio-gain" style="margin-top:2px"></div></div>
+      <div class="stat"><div class="k">Netto-Cashflow (Zeitraum)</div><div class="v" id="kpi-cashflow">–</div></div>
+    </div>
+
+    <div class="cards cards-4">
+      <div class="stat"><div class="k">Ausgaben (Zeitraum)</div><div class="v neg" id="kpi-ausgaben">–</div></div>
+      <div class="stat"><div class="k">Ausgaben (letzter Monat)</div><div class="v neg" id="kpi-ausgaben-lm">–</div></div>
+      <div class="stat"><div class="k">Passives Einkommen / Monat</div><div class="v pos" id="kpi-passiv">–</div></div>
+      <div class="stat"><div class="k">Passives Einkommen / Jahr</div><div class="v pos" id="kpi-passiv-jahr">–</div></div>
+    </div>
+
+    <div class="cards" style="grid-template-columns:repeat(2,1fr)">
+      <div class="stat"><div class="k">Latente Steuer (26 % auf ETF- &amp; Beteiligungs-Gewinne)</div><div class="v neg" id="kpi-lat-steuer">–</div></div>
+      <div class="stat"><div class="k">Nettovermögen nach latenter Steuer</div><div class="v" id="kpi-networth-net">–</div></div>
+    </div>
+
     <div class="panel">
+      <h2>Finanzielle Freiheit</h2>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Wie lange dein verfügbares Vermögen (nach latenter Steuer, ohne langfristig gebundenes Vermögen) die Lücke zwischen durchschnittlichen Ausgaben und passivem Einkommen deckt.</p>
+      <div class="cards cards-4" style="margin-bottom:16px">
+        <div class="stat"><div class="k">Ø Ausgaben/Monat (letztes Jahr)</div><div class="v neg" id="ff-ausgaben">–</div></div>
+        <div class="stat"><div class="k">Ø passives Einkommen/Monat</div><div class="v pos" id="ff-passiv">–</div></div>
+        <div class="stat"><div class="k">Monatliche Deckungslücke</div><div class="v" id="ff-luecke">–</div></div>
+        <div class="stat"><div class="k">Verfügbares Vermögen (netto, o. langfr.)</div><div class="v" id="ff-verfuegbar">–</div></div>
+      </div>
+      <div style="font-size:15px">Finanzielle Freiheit: <b id="ff-result" style="font-size:20px">–</b></div>
+    </div>
+
+    <div class="panel">
+      <h2>Vermögensentwicklung</h2>
+      <div id="dash-networth-chart" class="chart-wrap"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Cashflow je Monat</h2>
+      <div id="dash-cashflow-chart" class="chart-wrap"></div>
+    </div>
+
+    <div class="breakdown">
+      <div class="panel">
+        <h2>Ausgaben nach Kategorie</h2>
+        <div id="dash-cat"></div>
+      </div>
+      <div class="panel">
+        <h2>Vermögensaufteilung</h2>
+        <div id="dash-alloc"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Kapitalbindung (gesamt)</h2>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Über alle Anlageklassen (ETF-Portfolio, Immobilien-EK, Beteiligungen, Pensionsfonds), mit deinem Anteil gewichtet.</p>
+      <table>
+        <thead><tr><th>Horizont</th><th style="text-align:right">Wert</th><th style="text-align:right">Anteil</th><th></th></tr></thead>
+        <tbody id="dash-bindung-body"></tbody>
+      </table>
+    </div>
+    </section>
+
+    <!-- ===== TRANSAKTIONEN ===== -->
+    <section id="page-transaktionen" class="hidden">
+    <div class="panel">
+      <h2 id="tx-mode-label" style="margin:0 0 4px">Übersicht – alle Banken</h2>
+      <p style="color:var(--muted);font-size:13px;margin:0">Wähle links unter „Transaktionen" eine Bank, um Buchungen dieser Bank zu importieren oder zu erfassen.</p>
+    </div>
+
+    <!-- Übersicht über alle Banken -->
+    <div class="panel" id="tx-overview">
+      <h2>Banken-Übersicht</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Bank</th><th style="text-align:right">Einnahmen</th><th style="text-align:right">Ausgaben</th><th style="text-align:right">Saldo</th><th style="text-align:right">Buchungen</th></tr></thead>
+          <tbody id="tx-overview-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Umbuchung zwischen Konten (nur Übersicht) -->
+    <div class="panel" id="tx-umbuchung">
+      <h2>Umbuchung zwischen Konten</h2>
+      <div class="row">
+        <div><label>Datum</label><input type="date" id="ub-datum" /></div>
+        <div><label>Von Konto</label><select id="ub-von"></select></div>
+        <div><label>Auf Konto</label><select id="ub-auf"></select></div>
+        <div><label>Betrag (€)</label><input type="text" inputmode="decimal" id="ub-betrag" placeholder="0,00" /></div>
+        <div><label>Beschreibung (optional)</label><input type="text" id="ub-text" /></div>
+      </div>
+      <div class="actions" style="margin-top:14px">
+        <button id="ub-save">Umbuchung speichern</button>
+        <span id="ub-msg" style="font-size:13px"></span>
+      </div>
+    </div>
+
+    <!-- CSV-Import (pro Bank) -->
+    <div class="panel hidden" id="tx-import-panel">
       <h2>CSV importieren</h2>
       <div class="toolbar">
         <input type="file" id="csv-file" accept=".csv" class="grow" />
+        <label id="csv-kk-field" style="display:none;align-items:center;gap:6px;font-size:13px;white-space:nowrap"><input type="checkbox" id="csv-kk" style="width:auto" /> als Kreditkarte</label>
+        <button class="secondary" id="csv-template-btn">Vorlage herunterladen</button>
         <button id="csv-import-btn">Importieren</button>
       </div>
       <div id="csv-msg"></div>
@@ -156,18 +401,20 @@
       </p>
     </div>
 
-    <!-- Eintrag hinzufügen / bearbeiten -->
-    <div class="panel">
+    <!-- Eintrag hinzufügen / bearbeiten (pro Bank) -->
+    <div class="panel hidden" id="tx-entry-panel">
       <h2 id="form-title">Eintrag hinzufügen</h2>
       <form id="entry-form">
         <input type="hidden" id="entry-id" />
         <div class="row">
           <div><label>Buchungsdatum</label><input type="date" id="f-datum" /></div>
           <div><label>Beschreibung</label><input type="text" id="f-beschreibung" /></div>
-          <div><label>Soll € (Ausgabe)</label><input type="number" step="0.01" id="f-soll" /></div>
-          <div><label>Haben € (Eingang)</label><input type="number" step="0.01" id="f-haben" /></div>
+          <div><label>Soll € (Ausgabe)</label><input type="text" inputmode="decimal" placeholder="-50,00" id="f-soll" /></div>
+          <div><label>Haben € (Eingang)</label><input type="text" inputmode="decimal" placeholder="2.500,00" id="f-haben" /></div>
           <div><label>Kategorie</label><input type="text" id="f-kategorie" /></div>
-          <div><label>Bank</label><input type="text" id="f-bank" /></div>
+          <div><label>Immobilie (optional)</label><select id="f-immo"></select></div>
+          <div id="f-kk-field" style="display:none"><label>Art</label><select id="f-kreditkarte"><option value="konto">Konto</option><option value="kk">Kreditkarte</option></select></div>
+          <div id="f-bank-field" style="display:none"><label>Bank</label><select id="f-bank"></select></div>
         </div>
         <div class="actions" style="margin-top:14px">
           <button type="submit" id="entry-save">Speichern</button>
@@ -181,6 +428,11 @@
     <div class="panel">
       <div class="toolbar">
         <h2 style="margin:0" class="grow">Transaktionen (<span id="count">0</span>)</h2>
+        <span id="tx-kk-filter" style="display:none;gap:4px">
+          <button class="secondary" data-kk="alle">Alle</button>
+          <button class="secondary" data-kk="konto">Konto</button>
+          <button class="secondary" data-kk="kk">Kreditkarte</button>
+        </span>
         <input type="text" id="search" placeholder="Suchen…" style="max-width:240px" />
       </div>
       <div style="overflow-x:auto">
@@ -196,7 +448,217 @@
       </div>
       <div id="empty" class="empty hidden">Noch keine Einträge. Importiere eine CSV oder füge oben einen Eintrag hinzu.</div>
     </div>
-  </main>
+    </section>
+
+    <!-- ===== PORTFOLIO ===== -->
+    <section id="page-portfolio" class="hidden">
+      <div class="panel">
+        <h2 id="pf-mode-label" style="margin:0 0 4px">Übersicht – alle Portfolio-Banken</h2>
+        <p style="color:var(--muted);font-size:13px;margin:0">Wähle links unter „ETF-Portfolio" eine Bank, um Stände dieser Bank zu erfassen.</p>
+      </div>
+
+      <!-- Übersicht über alle Portfolio-Banken -->
+      <div class="panel" id="pf-overview">
+        <h2>Portfolio-Übersicht je Bank</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Bank</th><th style="text-align:right">Investiert</th><th style="text-align:right">Wert</th><th style="text-align:right">Gewinn €</th><th style="text-align:right">Gewinn %</th></tr></thead>
+            <tbody id="pf-overview-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="stat"><div class="k">Investiert</div><div class="v" id="pf-sum-invest">–</div></div>
+        <div class="stat"><div class="k">Aktueller Wert</div><div class="v" id="pf-sum-wert">–</div></div>
+        <div class="stat"><div class="k">Gewinn</div><div class="v" id="pf-sum-gewinn">–</div></div>
+      </div>
+
+      <div class="panel">
+        <h2 style="margin:0 0 6px">Positionen (<span id="pf-pos-count">0</span>)</h2>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Jeweils der letzte erfasste Stand (im gewählten Zeitraum). Die <b>Bindung</b> hier einstellen – sie gilt für alle Stände dieser Position.</p>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>Bank</th><th>Position</th><th>Bindung</th>
+              <th style="text-align:right">Anteile</th><th style="text-align:right">Investiert</th>
+              <th style="text-align:right">Wert</th><th style="text-align:right">Gewinn €</th>
+              <th style="text-align:right">Gewinn %</th><th>Letzter Stand</th>
+            </tr></thead>
+            <tbody id="pf-pos-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Kapitalbindung</h2>
+        <table>
+          <thead><tr><th>Horizont</th><th style="text-align:right">Wert</th><th style="text-align:right">Anteil</th><th></th></tr></thead>
+          <tbody id="pf-bindung-body"></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h2>Wertentwicklung</h2>
+        <div id="pf-chart" class="chart-wrap"></div>
+      </div>
+
+      <div class="panel hidden" id="pf-bulk-panel">
+        <div class="toolbar">
+          <h2 class="grow" style="margin:0">Neuen Monatsstand erfassen</h2>
+          <label style="margin:0">Datum</label>
+          <input type="date" id="pf-bulk-datum" style="max-width:170px" />
+          <button id="pf-bulk-load" class="secondary">Letzte Werte laden</button>
+        </div>
+        <div id="pf-bulk-area"></div>
+      </div>
+
+      <div class="panel hidden" id="pf-entry-panel">
+        <h2 id="pf-form-title">Einzelne Position hinzufügen</h2>
+        <form id="pf-form">
+          <input type="hidden" id="pf-id" />
+          <div class="row">
+            <div><label>Datum</label><input type="date" id="pf-datum" /></div>
+            <div id="pf-bank-field" style="display:none"><label>Bank</label><select id="pf-bank"></select></div>
+            <div><label>Position</label><input type="text" id="pf-bezeichnung" placeholder="z. B. MSCI World ETF" /></div>
+            <div><label>Anteile</label><input type="text" inputmode="decimal" id="pf-anteile" /></div>
+            <div><label>Investiert €</label><input type="text" inputmode="decimal" placeholder="40.000,00" id="pf-investiert" /></div>
+            <div><label>Wert €</label><input type="text" inputmode="decimal" placeholder="41.695,63" id="pf-wert" /></div>
+          </div>
+          <div class="actions" style="margin-top:14px">
+            <button type="submit">Speichern</button>
+            <button type="button" class="secondary hidden" id="pf-cancel">Abbrechen</button>
+          </div>
+        </form>
+        <div id="pf-msg"></div>
+      </div>
+
+      <div class="panel">
+        <h2 style="margin:0 0 16px">Einträge (<span id="pf-count">0</span>)</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Datum</th><th>Bank</th><th>Position</th>
+                <th style="text-align:right">Anteile</th><th style="text-align:right">Investiert</th>
+                <th style="text-align:right">Wert</th><th style="text-align:right">Gewinn €</th>
+                <th style="text-align:right">Gewinn %</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="pf-body"></tbody>
+          </table>
+        </div>
+        <div id="pf-empty" class="empty hidden">Noch keine Portfolio-Einträge.</div>
+      </div>
+    </section>
+
+    <!-- ===== BANKEN ===== -->
+    <section id="page-banken" class="hidden">
+      <div class="panel">
+        <h2 id="bank-form-title">Bank hinzufügen</h2>
+        <form id="bank-form">
+          <input type="hidden" id="bank-id" />
+          <div class="row">
+            <div><label>Bank</label><input type="text" id="bank-name" /></div>
+            <div><label>Vertragsstart</label><input type="date" id="bank-start" /></div>
+            <div><label>Banksaldo zum Vertragsstart €</label><input type="text" inputmode="decimal" id="bank-saldo" placeholder="0,00" /></div>
+            <div><label>Mit Portfolio (auszahlbar)</label>
+              <select id="bank-portfolio"><option value="nein">Nein</option><option value="ja">Ja</option></select>
+            </div>
+            <div><label>Hat Kreditkarte</label>
+              <select id="bank-kreditkarte"><option value="nein">Nein</option><option value="ja">Ja</option></select>
+            </div>
+          </div>
+          <div style="margin-top:16px">
+            <label>Eigentümer</label>
+            <div id="bank-owner-default" style="color:var(--muted);font-size:14px">Standard: <b id="bank-user-name">du</b> als alleiniger Eigentümer (100 %).</div>
+            <div id="bank-owner-editor" class="hidden">
+              <div id="bank-owners"></div>
+              <button type="button" class="secondary" id="bank-add-owner" style="margin-top:8px">+ Eigentümer</button>
+              <span id="bank-owner-sum" style="margin-left:12px;font-size:13px"></span>
+            </div>
+            <div style="margin-top:8px">
+              <button type="button" class="secondary" id="bank-owner-toggle">Weitere Eigentümer festlegen</button>
+            </div>
+          </div>
+          <div class="actions" style="margin-top:16px">
+            <button type="submit">Speichern</button>
+            <button type="button" class="secondary hidden" id="bank-cancel">Abbrechen</button>
+          </div>
+        </form>
+        <div id="bank-msg"></div>
+      </div>
+
+      <div class="panel">
+        <h2 style="margin:0 0 16px">Banken (<span id="bank-count">0</span>)</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>Bank</th><th>Vertragsstart</th>
+              <th style="text-align:right">Saldo Start</th><th style="text-align:right">Berechnetes Saldo</th>
+              <th>Letzte Buchung</th><th>Portfolio</th><th>Eigentümer</th><th></th>
+            </tr></thead>
+            <tbody id="banks-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== IMMOBILIEN ===== -->
+    <section id="page-immobilien" class="hidden">
+      <div class="panel">
+        <h2 id="immo-mode-label" style="margin:0 0 4px">Übersicht – alle Immobilien</h2>
+        <p style="color:var(--muted);font-size:13px;margin:0">Wähle links unter „Immobilien" eine Immobilie für Details und zugeordnete Transaktionen.</p>
+      </div>
+      <div class="cards" id="immo-cards">
+        <div class="stat"><div class="k">Gesamt-EK (Immobilien)</div><div class="v" id="immo-sum-ek">–</div></div>
+        <div class="stat"><div class="k">Cashflow n. Schuldendienst / Monat</div><div class="v" id="immo-sum-cf">–</div></div>
+        <div class="stat"><div class="k">Ø Nettomietrendite n. St.</div><div class="v" id="immo-sum-rendite">–</div></div>
+      </div>
+      <div style="margin-bottom:16px" id="immo-addbar"><button id="immo-add">+ Immobilie hinzufügen</button></div>
+      <div id="immo-list"></div>
+      <div id="immo-empty" class="empty hidden">Noch keine Immobilien erfasst.</div>
+
+      <div class="panel hidden" id="immo-tx">
+        <h2>Zugeordnete Transaktionen</h2>
+        <div class="cards" style="margin-bottom:16px">
+          <div class="stat"><div class="k">Einnahmen</div><div class="v pos" id="immo-tx-ein">–</div></div>
+          <div class="stat"><div class="k">Ausgaben</div><div class="v neg" id="immo-tx-aus">–</div></div>
+          <div class="stat"><div class="k">Saldo</div><div class="v" id="immo-tx-saldo">–</div></div>
+        </div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Datum</th><th>Beschreibung</th><th>Kategorie</th><th>Bank</th><th style="text-align:right">Soll</th><th style="text-align:right">Haben</th></tr></thead>
+          <tbody id="immo-tx-body"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ===== BETEILIGUNGEN ===== -->
+    <section id="page-beteiligungen" class="hidden">
+      <div class="cards">
+        <div class="stat"><div class="k">Vermögenswert gesamt</div><div class="v" id="bet-sum-verm">–</div></div>
+        <div class="stat"><div class="k">Jahresertrag netto</div><div class="v" id="bet-sum-ertrag">–</div></div>
+        <div class="stat"><div class="k">Monatlicher Nettoertrag</div><div class="v" id="bet-sum-monat">–</div></div>
+      </div>
+      <div style="margin-bottom:16px"><button id="bet-add">+ Beteiligung hinzufügen</button></div>
+      <div id="bet-list"></div>
+      <div id="bet-empty" class="empty hidden">Noch keine Beteiligungen erfasst.</div>
+    </section>
+
+    <!-- ===== PENSIONSFONDS ===== -->
+    <section id="page-pensionsfonds" class="hidden">
+      <div class="cards">
+        <div class="stat"><div class="k">Aktueller Wert gesamt</div><div class="v" id="pens-sum-wert">–</div></div>
+        <div class="stat"><div class="k">Beitrag/Monat gesamt</div><div class="v" id="pens-sum-beitrag">–</div></div>
+        <div class="stat"><div class="k">Absetzbar/Jahr gesamt</div><div class="v" id="pens-sum-absetz">–</div></div>
+      </div>
+      <div style="margin-bottom:16px"><button id="pens-add">+ Pensionsfonds hinzufügen</button></div>
+      <div id="pens-list"></div>
+      <div id="pens-empty" class="empty hidden">Noch keine Pensionsfonds erfasst.</div>
+    </section>
+      </main>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -207,10 +669,25 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const loginView = document.getElementById("login-view");
 const appView   = document.getElementById("app-view");
-let allRows = [];   // lokaler Cache der geladenen Zeilen
+let allRows = [];        // Transaktionen
+let portfolioRows = [];  // Portfolio-Stände
+let activeTxBank = null;  // null = Übersicht (alle Banken), sonst Bankname
+let txKKFilter = "alle";  // alle | konto | kk
+let activePfBank = null;  // ETF-Portfolio: null = Übersicht, sonst Bankname
 
 // ---------- Hilfsfunktionen ----------
 const euro = (n) => (n == null ? "" : Number(n).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €");
+// Zahl deutsch formatieren (für Eingabefelder), z. B. 41695.63 -> "41.695,63"
+const fmtNum = (n, dec = 2) => (n == null || n === "" ? "" : Number(n).toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: dec }));
+// Deutsch eingetippte Zahl einlesen, z. B. "41.695,63" oder "41695,63" -> 41695.63
+function numDE(v) {
+  if (v == null) return null;
+  v = String(v).trim();
+  if (v === "") return null;
+  const s = v.replace(/[€\s]/g, "").replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
 function showMsg(el, text, type) { el.innerHTML = text ? `<div class="msg ${type}">${text}</div>` : ""; }
 
 // "19.06.26" -> "2026-06-19" ; akzeptiert auch ISO-Datum
@@ -254,7 +731,15 @@ sb.auth.onAuthStateChange((_event, session) => {
     loginView.classList.add("hidden");
     appView.classList.remove("hidden");
     document.getElementById("user-email").textContent = session.user.email;
+    currentUserName = session.user.email;
+    const un = document.getElementById("bank-user-name");
+    if (un) un.textContent = currentUserName;
     loadData();
+    loadPortfolio();
+    loadBanks();
+    loadImmo();
+    loadBet();
+    loadPens();
   } else {
     appView.classList.add("hidden");
     loginView.classList.remove("hidden");
@@ -275,47 +760,284 @@ async function loadData() {
   render();
 }
 
+// Datums-Zeitraumfilter (von–bis). Zeilen ohne Datum werden bei aktivem Filter ausgeblendet.
+function dateInRange(value) {
+  const von = document.getElementById("filter-von").value;
+  const bis = document.getElementById("filter-bis").value;
+  const d = value ? String(value).slice(0, 10) : null;
+  if (von && (!d || d < von)) return false;
+  if (bis && (!d || d > bis)) return false;
+  return true;
+}
+function inRange(r) { return dateInRange(r.buchungsdatum); }
+
 function render() {
+  const viewRows = allRows.filter(inRange);   // global nach Zeitraum gefiltert (Dashboard nutzt das)
+  let tableBase = activeTxBank ? viewRows.filter((r) => (r.bank || "") === activeTxBank) : viewRows;
+  if (activeTxBank && txKKFilter === "konto") tableBase = tableBase.filter((r) => !r.kreditkarte);
+  else if (activeTxBank && txKKFilter === "kk") tableBase = tableBase.filter((r) => r.kreditkarte);
   const q = document.getElementById("search").value.toLowerCase();
-  const rows = allRows.filter((r) =>
+  const rows = tableBase.filter((r) =>
     !q || [r.beschreibung, r.kategorie, r.bank].some((x) => (x || "").toLowerCase().includes(q))
   );
 
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
+  const txGroups = {};
   rows.forEach((r) => {
-    const tr = document.createElement("tr");
-    const datum = r.buchungsdatum ? new Date(r.buchungsdatum).toLocaleDateString("de-DE") : "";
-    tr.innerHTML = `
-      <td>${datum}</td>
-      <td>${esc(r.beschreibung)}</td>
-      <td>${esc(r.kategorie)}</td>
-      <td>${esc(r.bank)}</td>
-      <td class="num neg">${r.soll != null ? euro(r.soll) : ""}</td>
-      <td class="num pos">${r.haben != null ? euro(r.haben) : ""}</td>
-      <td class="num">
-        <button class="link" data-edit="${r.id}">Bearbeiten</button>
-        <button class="danger" data-del="${r.id}">Löschen</button>
-      </td>`;
-    tbody.appendChild(tr);
+    const key = r.buchungsdatum ? String(r.buchungsdatum).slice(0, 7) : "0000-00";
+    (txGroups[key] = txGroups[key] || []).push(r);
+  });
+  Object.keys(txGroups).sort().reverse().forEach((key) => {
+    const label = key === "0000-00" ? "Ohne Datum"
+      : new Date(key + "-01").toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+    let mSoll = 0, mHaben = 0;
+    txGroups[key].forEach((r) => { mSoll += Number(r.soll) || 0; mHaben += Number(r.haben) || 0; });
+    const htr = document.createElement("tr");
+    htr.className = "group-row";
+    htr.innerHTML = `<td colspan="4">${label}</td><td class="num neg">${mSoll ? euro(mSoll) : ""}</td><td class="num pos">${mHaben ? euro(mHaben) : ""}</td><td></td>`;
+    tbody.appendChild(htr);
+    txGroups[key].forEach((r) => {
+      const tr = document.createElement("tr");
+      const datum = r.buchungsdatum ? new Date(r.buchungsdatum).toLocaleDateString("de-DE") : "";
+      tr.innerHTML = `
+        <td>${datum}</td>
+        <td>${esc(r.beschreibung)}${r.kreditkarte ? ' <span style="background:var(--primary-subtle);color:var(--accent);font-size:11px;padding:1px 5px;border-radius:4px">KK</span>' : ""}${r.umbuchung ? ' <span style="background:var(--panel2);color:var(--muted);font-size:11px;padding:1px 5px;border-radius:4px">Umbuchung</span>' : ""}</td>
+        <td>${esc(r.kategorie)}</td>
+        <td>${esc(r.bank)}</td>
+        <td class="num neg">${r.soll != null ? euro(r.soll) : ""}</td>
+        <td class="num pos">${r.haben != null ? euro(r.haben) : ""}</td>
+        <td class="num">
+          <button class="link" data-edit="${r.id}">Bearbeiten</button>
+          <button class="danger" data-del="${r.id}">Löschen</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
   });
 
   document.getElementById("count").textContent = rows.length;
-  document.getElementById("empty").classList.toggle("hidden", allRows.length > 0);
+  document.getElementById("empty").classList.toggle("hidden", rows.length > 0);
 
-  // Summen (über alle Zeilen, nicht nur gefilterte)
-  let soll = 0, haben = 0;
-  allRows.forEach((r) => { soll += Number(r.soll) || 0; haben += Number(r.haben) || 0; });
-  document.getElementById("sum-haben").textContent = euro(haben);
-  document.getElementById("sum-soll").textContent = euro(soll);
-  const saldo = haben + soll; // soll ist i.d.R. negativ
-  const saldoEl = document.getElementById("sum-saldo");
-  saldoEl.textContent = euro(saldo);
-  saldoEl.className = "v " + (saldo >= 0 ? "pos" : "neg");
+  if (typeof renderBanks === "function") renderBanks();
+  renderTxOverview(viewRows);
+  applyTxMode();
+  if (typeof renderDashboard === "function") renderDashboard();
+  if (typeof renderImmoTx === "function") renderImmoTx();
+}
+
+// Banken-Übersicht auf der Transaktionsseite (Zusammenfassung aller Banken)
+function renderTxOverview(viewRows) {
+  const body = document.getElementById("tx-overview-body");
+  if (!body) return;
+  const groups = {};
+  viewRows.forEach((r) => {
+    const k = (r.bank || "").trim() || "Ohne Bank";
+    if (!groups[k]) groups[k] = { ein: 0, aus: 0, n: 0 };
+    groups[k].ein += Number(r.haben) || 0;
+    groups[k].aus += Number(r.soll) || 0;
+    groups[k].n++;
+  });
+  const keys = Object.keys(groups).sort();
+  body.innerHTML = "";
+  if (keys.length === 0) { body.innerHTML = `<tr><td colspan="5" class="empty">Keine Transaktionen im Zeitraum.</td></tr>`; return; }
+  let tEin = 0, tAus = 0, tN = 0;
+  keys.forEach((k) => {
+    const g = groups[k]; const saldo = g.ein + g.aus;
+    tEin += g.ein; tAus += g.aus; tN += g.n;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${esc(k)}</td><td class="num pos">${euro(g.ein)}</td><td class="num neg">${euro(g.aus)}</td><td class="num ${saldo >= 0 ? "pos" : "neg"}">${euro(saldo)}</td><td class="num">${g.n}</td>`;
+    body.appendChild(tr);
+  });
+  const tot = document.createElement("tr");
+  tot.className = "group-row";
+  tot.innerHTML = `<td>Gesamt</td><td class="num pos">${euro(tEin)}</td><td class="num neg">${euro(tAus)}</td><td class="num ${(tEin + tAus) >= 0 ? "pos" : "neg"}">${euro(tEin + tAus)}</td><td class="num">${tN}</td>`;
+  body.appendChild(tot);
+}
+
+// Sichtbarkeit Übersicht vs. Bank-Modus
+function applyTxMode() {
+  const overview = !activeTxBank;
+  const ov = document.getElementById("tx-overview");
+  const imp = document.getElementById("tx-import-panel");
+  const ent = document.getElementById("tx-entry-panel");
+  const ub = document.getElementById("tx-umbuchung");
+  if (ub) ub.classList.toggle("hidden", !overview);
+  if (ov) ov.classList.toggle("hidden", !overview);
+  if (imp) imp.classList.toggle("hidden", overview);
+  if (ent) ent.classList.toggle("hidden", overview);
+  const lbl = document.getElementById("tx-mode-label");
+  if (lbl) lbl.textContent = overview ? "Übersicht – alle Banken" : "Bank: " + activeTxBank;
+  if (!overview) fillBankSelect(document.getElementById("f-bank"), activeTxBank);
+  // Kreditkarte: Felder nur zeigen, wenn die aktive Bank eine Kreditkarte hat
+  const bk = banks.find((x) => x.name === activeTxBank);
+  const showKK = !overview && !!(bk && bk.hat_kreditkarte);
+  const kkF = document.getElementById("f-kk-field"); if (kkF) kkF.style.display = showKK ? "" : "none";
+  const csvF = document.getElementById("csv-kk-field"); if (csvF) csvF.style.display = showKK ? "inline-flex" : "none";
+  const txF = document.getElementById("tx-kk-filter"); if (txF) txF.style.display = showKK ? "inline-flex" : "none";
+  if (!showKK) txKKFilter = "alle";
+  document.querySelectorAll("#tx-kk-filter button").forEach((b) => b.classList.toggle("active-kk", b.getAttribute("data-kk") === txKKFilter));
+}
+document.getElementById("tx-kk-filter").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-kk]"); if (!b) return;
+  txKKFilter = b.getAttribute("data-kk");
+  render();
+});
+
+// ---- Auswertung pro Bank / Kategorie (über den gewählten Zeitraum) ----
+function aggregate(rows, key, fallback) {
+  const m = {};
+  rows.forEach((r) => {
+    const k = (r[key] || "").trim() || fallback;
+    if (!m[k]) m[k] = { name: k, ein: 0, aus: 0 };
+    m[k].ein += Number(r.haben) || 0;
+    m[k].aus += Number(r.soll) || 0; // i.d.R. negativ
+  });
+  const arr = Object.values(m).map((g) => ({ ...g, saldo: g.ein + g.aus }));
+  arr.sort((a, b) => (b.ein + Math.abs(b.aus)) - (a.ein + Math.abs(a.aus)));
+  return arr;
+}
+function fillGroupTable(id, arr) {
+  const body = document.getElementById(id);
+  body.innerHTML = "";
+  if (arr.length === 0) { body.innerHTML = `<tr><td colspan="5" class="empty">Keine Daten</td></tr>`; return; }
+  const max = Math.max(1, ...arr.map((g) => Math.max(g.ein, Math.abs(g.aus))));
+  arr.forEach((g) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(g.name)}</td>
+      <td class="num pos">${g.ein ? euro(g.ein) : ""}</td>
+      <td class="num neg">${g.aus ? euro(g.aus) : ""}</td>
+      <td class="num ${g.saldo >= 0 ? "pos" : "neg"}">${euro(g.saldo)}</td>
+      <td class="barcell">
+        <div class="bar"><div class="bar-in" style="width:${(g.ein / max * 100).toFixed(1)}%"></div></div>
+        <div class="bar"><div class="bar-out" style="width:${(Math.abs(g.aus) / max * 100).toFixed(1)}%"></div></div>
+      </td>`;
+    body.appendChild(tr);
+  });
+}
+function renderBreakdown(rows) {
+  fillGroupTable("bank-body", aggregate(rows, "bank", "Ohne Bank"));
+  fillGroupTable("kat-body", aggregate(rows, "kategorie", "Ohne Kategorie"));
 }
 function esc(s) { return (s == null ? "" : String(s)).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
 
+// ---- Navigation (Seitenmenü) ----
+const PAGES = ["dashboard", "transaktionen", "portfolio", "banken", "immobilien", "beteiligungen", "pensionsfonds"];
+function showPage(page, title) {
+  document.querySelectorAll(".nav-item").forEach((n) => n.classList.toggle("active", n.getAttribute("data-page") === page));
+  PAGES.forEach((p) => document.getElementById("page-" + p).classList.toggle("hidden", p !== page));
+  document.getElementById("page-title").textContent = title || page;
+}
+document.querySelectorAll(".nav-item").forEach((item) => {
+  item.addEventListener("click", (e) => {
+    e.preventDefault();
+    const page = item.getAttribute("data-page");
+    showPage(page, item.textContent.trim());
+    if (page === "transaktionen") { activeTxBank = null; renderTxSubmenu(); render(); }
+    if (page === "portfolio") { activePfBank = null; renderPfSubmenu(); renderPortfolio(); }
+    if (page === "immobilien") { activeImmo = null; renderImmoSubmenu(); renderImmo(); }
+  });
+});
+
+// Untermenü pro Bank unter „ETF-Portfolio" (nur Banken mit Portfolio)
+function portfolioBankNames() { return banks.filter((b) => b.hat_portfolio).map((b) => b.name).filter(Boolean); }
+function renderPfSubmenu() {
+  const wrap = document.getElementById("pf-submenu");
+  if (!wrap) return;
+  const items = [{ key: "", label: "Übersicht" }].concat(portfolioBankNames().map((n) => ({ key: n, label: n })));
+  wrap.innerHTML = items.map((it) =>
+    `<a href="#" class="subnav-item ${(activePfBank || "") === it.key ? "active" : ""}" data-bank="${it.key.replace(/"/g, "&quot;")}">${esc(it.label)}</a>`
+  ).join("");
+}
+document.getElementById("pf-submenu").addEventListener("click", (e) => {
+  const a = e.target.closest(".subnav-item");
+  if (!a) return;
+  e.preventDefault();
+  const b = a.getAttribute("data-bank");
+  activePfBank = b || null;
+  showPage("portfolio", activePfBank ? "ETF-Portfolio – " + activePfBank : "ETF-Portfolio");
+  renderPfSubmenu();
+  renderPortfolio();
+});
+
+// Portfolio-Übersicht je Bank (neuester Stand pro Position, alle Banken)
+function renderPfOverview(dateRows) {
+  const body = document.getElementById("pf-overview-body");
+  if (!body) return;
+  const latest = {};
+  dateRows.forEach((r) => {
+    const bank = (r.bank || "").trim() || "Ohne Bank";
+    const key = bank + "|" + (r.bezeichnung || "");
+    const st = (r.datum || "") + (r.created_at || "");
+    if (!latest[key] || st >= latest[key].st) latest[key] = { ...r, _bank: bank, st };
+  });
+  const byBank = {};
+  Object.values(latest).forEach((r) => {
+    if (!byBank[r._bank]) byBank[r._bank] = { inv: 0, wert: 0 };
+    byBank[r._bank].inv += Number(r.investiert) || 0;
+    byBank[r._bank].wert += Number(r.wert) || 0;
+  });
+  const keys = Object.keys(byBank).sort();
+  body.innerHTML = "";
+  if (keys.length === 0) { body.innerHTML = `<tr><td colspan="5" class="empty">Keine Portfolio-Daten im Zeitraum.</td></tr>`; return; }
+  let tInv = 0, tWert = 0;
+  keys.forEach((k) => {
+    const g = byBank[k]; const gew = g.wert - g.inv; const pct = g.inv ? gew / g.inv * 100 : 0;
+    tInv += g.inv; tWert += g.wert;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${esc(k)}</td><td class="num">${euro(g.inv)}</td><td class="num">${euro(g.wert)}</td><td class="num ${gew >= 0 ? "pos" : "neg"}">${euro(gew)}</td><td class="num ${gew >= 0 ? "pos" : "neg"}">${pct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %</td>`;
+    body.appendChild(tr);
+  });
+  const tgew = tWert - tInv; const tpct = tInv ? tgew / tInv * 100 : 0;
+  const tot = document.createElement("tr");
+  tot.className = "group-row";
+  tot.innerHTML = `<td>Gesamt</td><td class="num">${euro(tInv)}</td><td class="num">${euro(tWert)}</td><td class="num ${tgew >= 0 ? "pos" : "neg"}">${euro(tgew)}</td><td class="num ${tgew >= 0 ? "pos" : "neg"}">${tpct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %</td>`;
+  body.appendChild(tot);
+}
+
+// Sichtbarkeit Übersicht vs. Bank-Modus (Portfolio)
+function applyPfMode() {
+  const overview = !activePfBank;
+  const ov = document.getElementById("pf-overview");
+  const bulk = document.getElementById("pf-bulk-panel");
+  const ent = document.getElementById("pf-entry-panel");
+  if (ov) ov.classList.toggle("hidden", !overview);
+  if (bulk) bulk.classList.toggle("hidden", overview);
+  if (ent) ent.classList.toggle("hidden", overview);
+  const lbl = document.getElementById("pf-mode-label");
+  if (lbl) lbl.textContent = overview ? "Übersicht – alle Portfolio-Banken" : "Bank: " + activePfBank;
+  if (!overview) fillBankSelect(document.getElementById("pf-bank"), activePfBank);
+}
+
+// Untermenü pro Bank unter „Transaktionen"
+function renderTxSubmenu() {
+  const wrap = document.getElementById("tx-submenu");
+  if (!wrap) return;
+  const items = [{ key: "", label: "Übersicht" }].concat(bankNames().map((n) => ({ key: n, label: n })));
+  wrap.innerHTML = items.map((it) =>
+    `<a href="#" class="subnav-item ${(activeTxBank || "") === it.key ? "active" : ""}" data-bank="${it.key.replace(/"/g, "&quot;")}">${esc(it.label)}</a>`
+  ).join("");
+}
+document.getElementById("tx-submenu").addEventListener("click", (e) => {
+  const a = e.target.closest(".subnav-item");
+  if (!a) return;
+  e.preventDefault();
+  const b = a.getAttribute("data-bank");
+  activeTxBank = b || null;
+  showPage("transaktionen", activeTxBank ? "Transaktionen – " + activeTxBank : "Transaktionen");
+  renderTxSubmenu();
+  render();
+});
+
+function applyFilters() { render(); renderPortfolio(); }
 document.getElementById("search").addEventListener("input", render);
+document.getElementById("filter-von").addEventListener("change", applyFilters);
+document.getElementById("filter-bis").addEventListener("change", applyFilters);
+document.getElementById("filter-reset").addEventListener("click", () => {
+  document.getElementById("filter-von").value = "";
+  document.getElementById("filter-bis").value = "";
+  applyFilters();
+});
 
 // Klicks in der Tabelle (Bearbeiten / Löschen)
 document.getElementById("tbody").addEventListener("click", async (e) => {
@@ -341,10 +1063,13 @@ function startEdit(r) {
   document.getElementById("entry-id").value = r.id;
   document.getElementById("f-datum").value = r.buchungsdatum || "";
   document.getElementById("f-beschreibung").value = r.beschreibung || "";
-  document.getElementById("f-soll").value = r.soll ?? "";
-  document.getElementById("f-haben").value = r.haben ?? "";
+  document.getElementById("f-soll").value = fmtNum(r.soll);
+  document.getElementById("f-haben").value = fmtNum(r.haben);
   document.getElementById("f-kategorie").value = r.kategorie || "";
-  document.getElementById("f-bank").value = r.bank || "";
+  populateImmoSelect();
+  document.getElementById("f-immo").value = r.immo_id || "";
+  document.getElementById("f-kreditkarte").value = r.kreditkarte ? "kk" : "konto";
+  fillBankSelect(document.getElementById("f-bank"), r.bank);
   document.getElementById("form-title").textContent = "Eintrag bearbeiten";
   document.getElementById("entry-cancel").classList.remove("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -365,10 +1090,12 @@ entryForm.addEventListener("submit", async (e) => {
   const payload = {
     buchungsdatum: document.getElementById("f-datum").value || null,
     beschreibung: document.getElementById("f-beschreibung").value || null,
-    soll: document.getElementById("f-soll").value === "" ? null : Number(document.getElementById("f-soll").value),
-    haben: document.getElementById("f-haben").value === "" ? null : Number(document.getElementById("f-haben").value),
+    soll: numDE(document.getElementById("f-soll").value),
+    haben: numDE(document.getElementById("f-haben").value),
     kategorie: document.getElementById("f-kategorie").value || null,
-    bank: document.getElementById("f-bank").value || null,
+    bank: activeTxBank || document.getElementById("f-bank").value || null,
+    immo_id: document.getElementById("f-immo").value || null,
+    kreditkarte: document.getElementById("f-kreditkarte").value === "kk",
   };
   let error;
   if (id) ({ error } = await sb.from("transactions").update(payload).eq("id", id));
@@ -376,6 +1103,1775 @@ entryForm.addEventListener("submit", async (e) => {
   if (error) { showMsg(document.getElementById("entry-msg"), "Fehler: " + error.message, "error"); return; }
   resetForm();
   loadData();
+});
+
+// ======================================================================
+//  Portfolio (Depot-Stände über die Zeit)
+// ======================================================================
+async function loadPortfolio() {
+  const { data, error } = await sb.from("portfolio")
+    .select("*")
+    .order("datum", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) { console.error(error); return; }
+  portfolioRows = data || [];
+  renderPortfolio();
+}
+
+function renderPortfolio() {
+  renderGaps();
+  const dateRows = portfolioRows.filter((r) => dateInRange(r.datum));   // alle Banken, im Zeitraum
+  const rows = activePfBank ? dateRows.filter((r) => (r.bank || "") === activePfBank) : dateRows;
+  renderPfOverview(dateRows);
+  applyPfMode();
+
+  // Tabelle: nach Monat gruppiert, neueste zuerst
+  const body = document.getElementById("pf-body");
+  body.innerHTML = "";
+  const groups = {};
+  [...rows].reverse().forEach((r) => {
+    const key = r.datum ? String(r.datum).slice(0, 7) : "0000-00";
+    (groups[key] = groups[key] || []).push(r);
+  });
+  Object.keys(groups).sort().reverse().forEach((key) => {
+    const label = key === "0000-00" ? "Ohne Datum"
+      : new Date(key + "-01").toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+    const monthSum = groups[key].reduce((s, r) => s + (Number(r.wert) || 0), 0);
+    const htr = document.createElement("tr");
+    htr.className = "group-row";
+    htr.innerHTML = `<td colspan="5">${label}</td><td class="num">${euro(monthSum)}</td><td colspan="3"></td>`;
+    body.appendChild(htr);
+    groups[key].forEach((r) => {
+      const inv = Number(r.investiert) || 0;
+      const wert = Number(r.wert) || 0;
+      const gew = wert - inv;
+      const pct = inv ? (gew / inv) * 100 : 0;
+      const datum = r.datum ? new Date(r.datum).toLocaleDateString("de-DE") : "";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${datum}</td>
+        <td>${esc(r.bank)}</td>
+        <td>${esc(r.bezeichnung)}</td>
+        <td class="num">${r.anteile != null ? Number(r.anteile).toLocaleString("de-DE", { maximumFractionDigits: 6 }) : ""}</td>
+        <td class="num">${euro(inv)}</td>
+        <td class="num">${euro(wert)}</td>
+        <td class="num ${gew >= 0 ? "pos" : "neg"}">${euro(gew)}</td>
+        <td class="num ${gew >= 0 ? "pos" : "neg"}">${pct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %</td>
+        <td class="num">
+          <button class="link" data-pedit="${r.id}">Bearbeiten</button>
+          <button class="danger" data-pdel="${r.id}">Löschen</button>
+        </td>`;
+      body.appendChild(tr);
+    });
+  });
+  document.getElementById("pf-count").textContent = rows.length;
+  document.getElementById("pf-empty").classList.toggle("hidden", portfolioRows.length > 0);
+
+  // Summen: jeweils neuester Stand pro Bank + Position
+  const latest = {};
+  rows.forEach((r) => {
+    const key = (r.bank || "") + "|" + (r.bezeichnung || "");
+    const stamp = (r.datum || "") + (r.created_at || "");
+    if (!latest[key] || stamp >= latest[key].stamp) latest[key] = { ...r, stamp };
+  });
+  let inv = 0, wert = 0;
+  Object.values(latest).forEach((r) => { inv += Number(r.investiert) || 0; wert += Number(r.wert) || 0; });
+  const gew = wert - inv;
+  const pct = inv ? (gew / inv) * 100 : 0;
+  document.getElementById("pf-sum-invest").textContent = euro(inv);
+  document.getElementById("pf-sum-wert").textContent = euro(wert);
+  const gEl = document.getElementById("pf-sum-gewinn");
+  gEl.textContent = euro(gew) + "  (" + pct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " %)";
+  gEl.className = "v " + (gew >= 0 ? "pos" : "neg");
+
+  renderPositions(latest);
+  renderBindung(latest, wert);
+
+  // Verlauf: je Stichtag Summe von Investiert und Wert (Gewinn = Wert − Investiert)
+  const byDate = {};
+  rows.forEach((r) => {
+    const d = r.datum ? String(r.datum).slice(0, 10) : null;
+    if (!d) return;
+    if (!byDate[d]) byDate[d] = { inv: 0, val: 0 };
+    byDate[d].inv += Number(r.investiert) || 0;
+    byDate[d].val += Number(r.wert) || 0;
+  });
+  const points = Object.keys(byDate).sort().map((d) => ({ date: d, inv: byDate[d].inv, val: byDate[d].val }));
+  drawChart(document.getElementById("pf-chart"), points);
+  if (typeof renderBanks === "function") renderBanks();
+}
+
+// Plausibilität: warnt, wenn eine Position in einem Monat fehlt, obwohl davor UND danach Werte da sind
+function renderGaps() {
+  const box = document.getElementById("pf-warnbox");
+  const dd = document.getElementById("pf-warn-dropdown");
+  const allMonths = [...new Set(portfolioRows.filter((r) => r.datum).map((r) => String(r.datum).slice(0, 7)))].sort();
+  const pos = {};
+  portfolioRows.forEach((r) => {
+    if (!r.datum) return;
+    const key = (r.bank || "") + "|" + (r.bezeichnung || "");
+    if (!pos[key]) pos[key] = { bank: r.bank, bez: r.bezeichnung, months: new Set() };
+    pos[key].months.add(String(r.datum).slice(0, 7));
+  });
+  const monthLabel = (m) => new Date(m + "-01").toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+  const warnings = [];
+  Object.values(pos).forEach((p) => {
+    const ms = [...p.months].sort();
+    const first = ms[0], last = ms[ms.length - 1];
+    const missing = allMonths.filter((m) => m > first && m < last && !p.months.has(m));
+    if (missing.length) warnings.push({ p, missing });
+  });
+  if (warnings.length === 0) { box.style.display = "none"; dd.style.display = "none"; dd.innerHTML = ""; return; }
+  box.style.display = "";
+  document.getElementById("pf-warn-count").textContent = warnings.length;
+  const items = warnings.map((w) =>
+    `<li><b>${esc(w.p.bez || w.p.bank || "?")}</b>${w.p.bank ? " (" + esc(w.p.bank) + ")" : ""}: fehlt ${w.missing.map(monthLabel).join(", ")}</li>`
+  ).join("");
+  dd.innerHTML = `<h4>Mögliche fehlende Werte</h4><p style="color:var(--muted);margin:6px 0 8px">In diesen Monaten fehlt ein Stand, obwohl davor und danach Werte erfasst wurden:</p><ul style="margin:0;padding-left:18px">${items}</ul>`;
+}
+
+// Warndreieck im Header: Dropdown auf-/zuklappen
+document.getElementById("pf-warnbtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const dd = document.getElementById("pf-warn-dropdown");
+  dd.style.display = dd.style.display === "none" ? "" : "none";
+});
+document.addEventListener("click", (e) => {
+  const box = document.getElementById("pf-warnbox");
+  if (!box.contains(e.target)) document.getElementById("pf-warn-dropdown").style.display = "none";
+});
+
+// Positionen-Übersicht: eine Zeile pro Position (neuester Stand im Filter); Bindung hier zentral setzen
+let pfPositions = [];
+function renderPositions(latestMap) {
+  pfPositions = Object.values(latestMap).sort((a, b) =>
+    (a.bank || "").localeCompare(b.bank || "") || (a.bezeichnung || "").localeCompare(b.bezeichnung || ""));
+  const body = document.getElementById("pf-pos-body");
+  body.innerHTML = "";
+  document.getElementById("pf-pos-count").textContent = pfPositions.length;
+  if (pfPositions.length === 0) { body.innerHTML = `<tr><td colspan="9" class="empty">Noch keine Positionen erfasst.</td></tr>`; return; }
+  pfPositions.forEach((r, i) => {
+    const inv = Number(r.investiert) || 0, wert = Number(r.wert) || 0;
+    const gew = wert - inv, pct = inv ? (gew / inv) * 100 : 0;
+    const stand = r.datum ? new Date(r.datum).toLocaleDateString("de-DE") : "";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(r.bank)}</td>
+      <td>${esc(r.bezeichnung)}</td>
+      <td><select class="pos-bind" data-idx="${i}" style="max-width:150px">${bindOptions(r.bindung)}</select></td>
+      <td class="num">${r.anteile != null ? Number(r.anteile).toLocaleString("de-DE", { maximumFractionDigits: 6 }) : ""}</td>
+      <td class="num">${euro(inv)}</td>
+      <td class="num">${euro(wert)}</td>
+      <td class="num ${gew >= 0 ? "pos" : "neg"}">${euro(gew)}</td>
+      <td class="num ${gew >= 0 ? "pos" : "neg"}">${pct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %</td>
+      <td>${stand}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+// Bindung ändern: gilt für ALLE Stände dieser Position (Bank + Position)
+document.getElementById("pf-pos-body").addEventListener("change", async (e) => {
+  if (!e.target.classList.contains("pos-bind")) return;
+  const r = pfPositions[+e.target.getAttribute("data-idx")];
+  const value = e.target.value || null;
+  let q = sb.from("portfolio").update({ bindung: value });
+  q = r.bank ? q.eq("bank", r.bank) : q.is("bank", null);
+  q = r.bezeichnung ? q.eq("bezeichnung", r.bezeichnung) : q.is("bezeichnung", null);
+  const { error } = await q;
+  if (error) { alert("Fehler beim Speichern der Bindung: " + error.message); return; }
+  loadPortfolio();
+});
+
+// Kapitalbindung: aktueller Wert je Horizont (kurz/mittel/langfristig), neuester Stand pro Position
+function renderBindung(latestMap, total) {
+  const order = ["kurzfristig", "mittelfristig", "langfristig", "Nicht zugeordnet"];
+  const sums = {};
+  Object.values(latestMap).forEach((r) => {
+    const k = r.bindung || "Nicht zugeordnet";
+    sums[k] = (sums[k] || 0) + (Number(r.wert) || 0);
+  });
+  const body = document.getElementById("pf-bindung-body");
+  body.innerHTML = "";
+  const keys = order.filter((k) => sums[k] != null);
+  if (keys.length === 0) { body.innerHTML = `<tr><td colspan="4" class="empty">Noch keine Positionen erfasst.</td></tr>`; return; }
+  const max = Math.max(1, ...keys.map((k) => sums[k]));
+  keys.forEach((k) => {
+    const v = sums[k];
+    const pct = total ? (v / total) * 100 : 0;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${k}</td>
+      <td class="num">${euro(v)}</td>
+      <td class="num">${pct.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %</td>
+      <td class="barcell"><div class="bar"><div class="bar-in" style="width:${(v / max * 100).toFixed(1)}%;background:#2F5DA8"></div></div></td>`;
+    body.appendChild(tr);
+  });
+}
+
+function drawChart(el, points) {
+  if (points.length < 2) {
+    el.innerHTML = `<div class="empty">Mindestens zwei Stichtage nötig, um einen Verlauf anzuzeigen.</div>`;
+    return;
+  }
+  const W = 820, H = 260, padL = 60, padR = 16, padT = 22, padB = 46;
+  const xs = points.map((p) => +new Date(p.date));
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const maxY = Math.max(...points.map((p) => Math.max(p.inv, p.val)), 1);
+  const sx = (x) => padL + (maxX === minX ? 0.5 : (x - minX) / (maxX - minX)) * (W - padL - padR);
+  const sy = (y) => H - padB - (y / maxY) * (H - padT - padB);
+  const X = (i) => sx(+new Date(points[i].date));
+  const base = H - padB;
+
+  const invPts = points.map((p, i) => `${X(i).toFixed(1)},${sy(p.inv).toFixed(1)}`);
+  const valPts = points.map((p, i) => `${X(i).toFixed(1)},${sy(p.val).toFixed(1)}`);
+  const invArea = `${X(0).toFixed(1)},${base} ${invPts.join(" ")} ${X(points.length - 1).toFixed(1)},${base}`;
+  const gewBand = [...valPts, ...invPts.slice().reverse()].join(" ");
+
+  const fmtY = (v) => Math.round(v).toLocaleString("de-DE") + " €";
+  const fmtD = (s) => new Date(s).toLocaleDateString("de-DE");
+
+  el.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="${invArea}" fill="rgba(47,93,168,0.22)"/>
+      <polygon points="${gewBand}" fill="rgba(46,125,50,0.22)"/>
+      <polyline points="${invPts.join(" ")}" fill="none" stroke="#2F5DA8" stroke-width="2" stroke-dasharray="4 3"/>
+      <polyline points="${valPts.join(" ")}" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linejoin="round"/>
+      <line id="pf-guide" x1="0" x2="0" y1="${padT}" y2="${base}" stroke="#C4C4C4" stroke-width="1" style="display:none"/>
+      <circle id="pf-dot-inv" r="4" fill="#2F5DA8" stroke="#FFFFFF" stroke-width="1.5" style="display:none"/>
+      <circle id="pf-dot-val" r="4" fill="#1A1A1A" stroke="#FFFFFF" stroke-width="1.5" style="display:none"/>
+      <text x="${padL}" y="${padT - 6}" fill="#6B6B6B" font-size="12">${fmtY(maxY)}</text>
+      <text x="${padL}" y="${H - padB + 18}" fill="#6B6B6B" font-size="12">${fmtD(points[0].date)}</text>
+      <text x="${W - padR}" y="${H - padB + 18}" fill="#6B6B6B" font-size="12" text-anchor="end">${fmtD(points[points.length - 1].date)}</text>
+    </svg>
+    <div class="legend">
+      <span><i style="background:#2F5DA8"></i>Investiert</span>
+      <span><i style="background:#2E7D32"></i>Gewinn</span>
+      <span><i style="background:#1A1A1A"></i>Gesamtwert</span>
+    </div>
+    <div id="pf-tip" class="chart-tip" style="display:none"></div>`;
+
+  // ---- Interaktivität: Tooltip beim Drüberfahren ----
+  const svg = el.querySelector("svg");
+  const guide = el.querySelector("#pf-guide");
+  const dotInv = el.querySelector("#pf-dot-inv");
+  const dotVal = el.querySelector("#pf-dot-val");
+  const tip = el.querySelector("#pf-tip");
+
+  function showAt(idx) {
+    const p = points[idx];
+    const gx = X(idx);
+    guide.setAttribute("x1", gx); guide.setAttribute("x2", gx); guide.style.display = "";
+    dotInv.setAttribute("cx", gx); dotInv.setAttribute("cy", sy(p.inv)); dotInv.style.display = "";
+    dotVal.setAttribute("cx", gx); dotVal.setAttribute("cy", sy(p.val)); dotVal.style.display = "";
+    const rect = svg.getBoundingClientRect();
+    const gew = p.val - p.inv;
+    const pct = p.inv ? (gew / p.inv) * 100 : 0;
+    const gewColor = gew >= 0 ? "#2E7D32" : "#C62828";
+    tip.innerHTML = `<b>${fmtD(p.date)}</b><br>Gesamtwert: <b>${euro(p.val)}</b><br>Investiert: ${euro(p.inv)}<br>Gewinn: <span style="color:${gewColor}">${euro(gew)} (${pct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %)</span>`;
+    let left = (gx / W) * rect.width;
+    left = Math.max(70, Math.min(rect.width - 70, left));
+    tip.style.left = left + "px";
+    tip.style.top = ((sy(p.val) / H) * rect.height) + "px";
+    tip.style.display = "";
+  }
+  function hide() { [guide, dotInv, dotVal, tip].forEach((n) => (n.style.display = "none")); }
+
+  svg.addEventListener("mousemove", (e) => {
+    const rect = svg.getBoundingClientRect();
+    const svgX = (e.clientX - rect.left) / rect.width * W;
+    let best = 0, bd = Infinity;
+    points.forEach((p, i) => { const d = Math.abs(X(i) - svgX); if (d < bd) { bd = d; best = i; } });
+    showAt(best);
+  });
+  svg.addEventListener("mouseleave", hide);
+}
+
+// ---- Portfolio-Formular ----
+const pfForm = document.getElementById("pf-form");
+function pfStartEdit(r) {
+  document.getElementById("pf-id").value = r.id;
+  document.getElementById("pf-datum").value = r.datum || "";
+  fillBankSelect(document.getElementById("pf-bank"), r.bank);
+  document.getElementById("pf-bezeichnung").value = r.bezeichnung || "";
+  document.getElementById("pf-anteile").value = fmtNum(r.anteile, 6);
+  document.getElementById("pf-investiert").value = fmtNum(r.investiert);
+  document.getElementById("pf-wert").value = fmtNum(r.wert);
+  document.getElementById("pf-form-title").textContent = "Stand bearbeiten";
+  document.getElementById("pf-cancel").classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function pfReset() {
+  pfForm.reset();
+  document.getElementById("pf-id").value = "";
+  document.getElementById("pf-form-title").textContent = "Stand hinzufügen";
+  document.getElementById("pf-cancel").classList.add("hidden");
+  showMsg(document.getElementById("pf-msg"), "", "");
+}
+document.getElementById("pf-cancel").addEventListener("click", pfReset);
+
+pfForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = document.getElementById("pf-id").value;
+  const payload = {
+    datum: document.getElementById("pf-datum").value || null,
+    bank: activePfBank || document.getElementById("pf-bank").value || null,
+    bezeichnung: document.getElementById("pf-bezeichnung").value || null,
+    anteile: numDE(document.getElementById("pf-anteile").value),
+    investiert: numDE(document.getElementById("pf-investiert").value),
+    wert: numDE(document.getElementById("pf-wert").value),
+  };
+  let error;
+  if (id) ({ error } = await sb.from("portfolio").update(payload).eq("id", id));
+  else    ({ error } = await sb.from("portfolio").insert([payload]));
+  if (error) { showMsg(document.getElementById("pf-msg"), "Fehler: " + error.message, "error"); return; }
+  pfReset();
+  loadPortfolio();
+});
+
+document.getElementById("pf-body").addEventListener("click", async (e) => {
+  const del = e.target.getAttribute("data-pdel");
+  const edit = e.target.getAttribute("data-pedit");
+  if (del) {
+    if (!confirm("Diesen Portfolio-Eintrag wirklich löschen?")) return;
+    const { error } = await sb.from("portfolio").delete().eq("id", del);
+    if (error) alert("Fehler: " + error.message); else loadPortfolio();
+  }
+  if (edit) {
+    const r = portfolioRows.find((x) => x.id === edit);
+    if (r) pfStartEdit(r);
+  }
+});
+
+// ---- Monatsstand: alle Positionen vom letzten Stand mit einem Klick übernehmen ----
+let pfBulkItems = [];
+const BINDUNGEN = ["kurzfristig", "mittelfristig", "langfristig"];
+function bindOptions(sel) {
+  return `<option value="">—</option>` +
+    BINDUNGEN.map((o) => `<option value="${o}" ${o === (sel || "") ? "selected" : ""}>${o}</option>`).join("");
+}
+function pfLatestPositions() {
+  const latest = {};
+  portfolioRows.forEach((r) => {
+    if (activePfBank && (r.bank || "") !== activePfBank) return;
+    const k = (r.bank || "") + "|" + (r.bezeichnung || "");
+    const s = (r.datum || "") + (r.created_at || "");
+    if (!latest[k] || s >= latest[k].stamp) latest[k] = { ...r, stamp: s };
+  });
+  return Object.values(latest);
+}
+function pfBuildBulk() {
+  const area = document.getElementById("pf-bulk-area");
+  pfBulkItems = pfLatestPositions();
+  if (pfBulkItems.length === 0) {
+    area.innerHTML = `<div class="empty">Noch keine Positionen vorhanden. Lege unten einzelne Positionen an – danach kannst du sie hier monatlich mit einem Klick übernehmen.</div>`;
+    return;
+  }
+  const rows = pfBulkItems.map((r, i) => `
+    <tr data-idx="${i}">
+      <td>${esc(r.bank)}</td>
+      <td>${esc(r.bezeichnung)}</td>
+      <td class="num"><input type="text" inputmode="decimal" class="bulk-anteile" value="${fmtNum(r.anteile, 6)}" style="max-width:120px" /></td>
+      <td class="num"><input type="text" inputmode="decimal" class="bulk-invest" value="${fmtNum(r.investiert)}" style="max-width:120px" /></td>
+      <td class="num"><input type="text" inputmode="decimal" class="bulk-wert" value="${fmtNum(r.wert)}" style="max-width:120px" /></td>
+    </tr>`).join("");
+  area.innerHTML = `
+    <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Werte vom letzten Stand übernommen – passe nur den aktuellen <b>Wert</b> an (Anteile/Investiert nur bei Zukäufen). Oben das Datum wählen, dann speichern.</p>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Bank</th><th>Position</th><th style="text-align:right">Anteile</th><th style="text-align:right">Investiert €</th><th style="text-align:right">Wert €</th></tr></thead>
+      <tbody id="pf-bulk-rows">${rows}</tbody>
+    </table></div>
+    <button id="pf-bulk-save" style="margin-top:14px">Als neuen Stand speichern</button>`;
+  document.getElementById("pf-bulk-save").addEventListener("click", pfBulkSave);
+}
+async function pfBulkSave() {
+  const datum = document.getElementById("pf-bulk-datum").value;
+  const msg = document.getElementById("pf-msg");
+  if (!datum) { showMsg(msg, "Bitte oben ein Datum für den neuen Stand wählen.", "error"); return; }
+  const payload = [...document.querySelectorAll("#pf-bulk-rows tr")].map((tr) => {
+    const base = pfBulkItems[+tr.getAttribute("data-idx")];
+    return {
+      datum,
+      bank: base.bank || null,
+      bezeichnung: base.bezeichnung || null,
+      anteile: numDE(tr.querySelector(".bulk-anteile").value),
+      investiert: numDE(tr.querySelector(".bulk-invest").value),
+      wert: numDE(tr.querySelector(".bulk-wert").value),
+      bindung: base.bindung || null,
+    };
+  });
+  const { error } = await sb.from("portfolio").insert(payload);
+  if (error) { showMsg(msg, "Fehler: " + error.message, "error"); return; }
+  showMsg(msg, `${payload.length} Positionen für ${new Date(datum).toLocaleDateString("de-DE")} gespeichert.`, "ok");
+  document.getElementById("pf-bulk-area").innerHTML = "";
+  loadPortfolio();
+}
+document.getElementById("pf-bulk-load").addEventListener("click", pfBuildBulk);
+(function () {
+  const d = new Date();
+  document.getElementById("pf-bulk-datum").value =
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+})();
+
+// ======================================================================
+//  Banken
+// ======================================================================
+let banks = [];
+let currentUserName = "";
+
+function bankNames() { return banks.map((b) => b.name).filter(Boolean); }
+function fillBankSelect(sel, current) {
+  if (!sel) return;
+  const cur = current != null ? current : sel.value;
+  const all = [...new Set([...(cur ? [cur] : []), ...bankNames()])];
+  sel.innerHTML = `<option value="">— Bank wählen —</option>` +
+    all.map((n) => `<option value="${n.replace(/"/g, "&quot;")}" ${n === cur ? "selected" : ""}>${esc(n)}</option>`).join("");
+}
+function populateBankSelects() {
+  fillBankSelect(document.getElementById("f-bank"));
+  fillBankSelect(document.getElementById("pf-bank"));
+  fillBankSelect(document.getElementById("ub-von"));
+  fillBankSelect(document.getElementById("ub-auf"));
+}
+(function () {
+  const el = document.getElementById("ub-datum");
+  if (el) { const t = new Date(); el.value = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; }
+})();
+document.getElementById("ub-save").addEventListener("click", async () => {
+  const datum = document.getElementById("ub-datum").value || null;
+  const von = document.getElementById("ub-von").value;
+  const auf = document.getElementById("ub-auf").value;
+  const betrag = numDE(document.getElementById("ub-betrag").value);
+  const text = document.getElementById("ub-text").value.trim();
+  const msg = document.getElementById("ub-msg");
+  if (!von || !auf || betrag == null || betrag <= 0) { msg.textContent = "Bitte Von-Konto, Auf-Konto und einen positiven Betrag angeben."; msg.style.color = "var(--red)"; return; }
+  if (von === auf) { msg.textContent = "Von- und Auf-Konto müssen verschieden sein."; msg.style.color = "var(--red)"; return; }
+  const b = Math.abs(betrag);
+  const rows = [
+    { buchungsdatum: datum, beschreibung: text || ("Umbuchung an " + auf), soll: -b, haben: 0, kategorie: "Umbuchung", bank: von, umbuchung: true },
+    { buchungsdatum: datum, beschreibung: text || ("Umbuchung von " + von), soll: 0, haben: b, kategorie: "Umbuchung", bank: auf, umbuchung: true },
+  ];
+  const { error } = await sb.from("transactions").insert(rows);
+  if (error) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; return; }
+  msg.textContent = "Umbuchung gespeichert."; msg.style.color = "var(--green)";
+  document.getElementById("ub-betrag").value = ""; document.getElementById("ub-text").value = "";
+  loadData();
+});
+
+async function loadBanks() {
+  const { data, error } = await sb.from("banks").select("*").order("name", { ascending: true });
+  if (error) { console.error(error); return; }
+  banks = data || [];
+  renderBanks();
+  populateBankSelects();
+  renderTxSubmenu();
+  renderPfSubmenu();
+  renderDashBankFilter();
+  if (typeof renderDashboard === "function") renderDashboard();
+}
+
+function renderBanks() {
+  const body = document.getElementById("banks-body");
+  if (!body) return;
+  body.innerHTML = "";
+  document.getElementById("bank-count").textContent = banks.length;
+  if (banks.length === 0) { body.innerHTML = `<tr><td colspan="8" class="empty">Noch keine Banken angelegt.</td></tr>`; return; }
+  banks.forEach((b) => {
+    const tx = allRows.filter((r) => (r.bank || "") === b.name);
+    const txSum = tx.reduce((s, r) => s + (Number(r.soll) || 0) + (Number(r.haben) || 0), 0);
+    const saldoStart = Number(b.saldo_start) || 0;
+    const computed = saldoStart + txSum;
+    const lastDate = tx.reduce((m, r) => (r.buchungsdatum && r.buchungsdatum > m ? r.buchungsdatum : m), "");
+    let pfCell = "—";
+    if (b.hat_portfolio) {
+      const latest = {};
+      portfolioRows.forEach((r) => {
+        if ((r.bank || "") !== b.name) return;
+        const k = r.bezeichnung || "";
+        const st = (r.datum || "") + (r.created_at || "");
+        if (!latest[k] || st >= latest[k].st) latest[k] = { ...r, st };
+      });
+      let inv = 0, wert = 0;
+      Object.values(latest).forEach((r) => { inv += Number(r.investiert) || 0; wert += Number(r.wert) || 0; });
+      const gew = wert - inv;
+      pfCell = `${euro(wert)}<br><span style="color:var(--muted);font-size:12px">Inv. ${euro(inv)} · <span class="${gew >= 0 ? "pos" : "neg"}">${euro(gew)}</span></span>`;
+    }
+    const ow = Array.isArray(b.eigentuemer) ? b.eigentuemer : [];
+    const owners = ow.length === 0
+      ? `${esc(currentUserName)} 100 %`
+      : ow.map((o) => `${esc(o.name || "")}${o.anteil != null && o.anteil !== "" ? " " + o.anteil + "%" : ""}`).join(" · ");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(b.name)}${b.hat_portfolio ? ' <span style="color:var(--muted);font-size:12px">(Portfolio)</span>' : ""}</td>
+      <td>${b.vertragsstart ? new Date(b.vertragsstart).toLocaleDateString("de-DE") : ""}</td>
+      <td class="num">${euro(saldoStart)}</td>
+      <td class="num ${computed >= 0 ? "pos" : "neg"}">${euro(computed)}</td>
+      <td>${lastDate ? new Date(lastDate).toLocaleDateString("de-DE") : "—"}</td>
+      <td>${pfCell}</td>
+      <td>${owners}</td>
+      <td class="num">
+        <button class="link" data-bedit="${b.id}">Bearbeiten</button>
+        <button class="danger" data-bdel="${b.id}">Löschen</button>
+      </td>`;
+    body.appendChild(tr);
+  });
+}
+
+// ---- Eigentümer-Editor ----
+function addOwnerRow(name = "", anteil = "") {
+  const div = document.createElement("div");
+  div.className = "owner-row";
+  div.style = "display:flex;gap:8px;margin-bottom:8px";
+  div.innerHTML = `
+    <input type="text" class="owner-name" placeholder="Name" value="${String(name).replace(/"/g, "&quot;")}" />
+    <input type="text" inputmode="decimal" class="owner-pct" placeholder="Anteil %" value="${anteil == null ? "" : anteil}" style="max-width:120px" />
+    <button type="button" class="secondary owner-del">Entfernen</button>`;
+  document.getElementById("bank-owners").appendChild(div);
+  updateOwnerSum();
+}
+function readOwners() {
+  return [...document.querySelectorAll("#bank-owners .owner-row")].map((row) => ({
+    name: row.querySelector(".owner-name").value.trim(),
+    anteil: numDE(row.querySelector(".owner-pct").value),
+  })).filter((o) => o.name || o.anteil != null);
+}
+function updateOwnerSum() {
+  const sum = readOwners().reduce((s, o) => s + (Number(o.anteil) || 0), 0);
+  const el = document.getElementById("bank-owner-sum");
+  el.textContent = "Summe Anteile: " + sum.toLocaleString("de-DE", { maximumFractionDigits: 2 }) + " %";
+  el.style.color = (sum === 100 || sum === 0) ? "var(--muted)" : "#8a6d00";
+}
+document.getElementById("bank-add-owner").addEventListener("click", () => addOwnerRow());
+document.getElementById("bank-owners").addEventListener("click", (e) => {
+  if (e.target.classList.contains("owner-del")) { e.target.closest(".owner-row").remove(); updateOwnerSum(); }
+});
+document.getElementById("bank-owners").addEventListener("input", updateOwnerSum);
+
+// Standard = du 100 %. Editor nur bei "Weitere Eigentümer festlegen".
+function bankOwnersShowEditor(show) {
+  document.getElementById("bank-owner-editor").classList.toggle("hidden", !show);
+  document.getElementById("bank-owner-default").classList.toggle("hidden", show);
+  document.getElementById("bank-owner-toggle").textContent = show ? "Zurück zu Standard (du 100 %)" : "Weitere Eigentümer festlegen";
+}
+document.getElementById("bank-owner-toggle").addEventListener("click", () => {
+  const hidden = document.getElementById("bank-owner-editor").classList.contains("hidden");
+  if (hidden) {
+    if (document.querySelectorAll("#bank-owners .owner-row").length === 0) {
+      addOwnerRow(currentUserName, 100);
+      addOwnerRow("", "");
+    }
+    bankOwnersShowEditor(true);
+  } else {
+    document.getElementById("bank-owners").innerHTML = "";
+    updateOwnerSum();
+    bankOwnersShowEditor(false);
+  }
+});
+
+// ---- Bank-Formular ----
+const bankForm = document.getElementById("bank-form");
+function bankReset() {
+  bankForm.reset();
+  document.getElementById("bank-id").value = "";
+  document.getElementById("bank-owners").innerHTML = "";
+  bankOwnersShowEditor(false);
+  document.getElementById("bank-form-title").textContent = "Bank hinzufügen";
+  document.getElementById("bank-cancel").classList.add("hidden");
+  showMsg(document.getElementById("bank-msg"), "", "");
+  updateOwnerSum();
+}
+document.getElementById("bank-cancel").addEventListener("click", bankReset);
+
+function bankStartEdit(b) {
+  document.getElementById("bank-id").value = b.id;
+  document.getElementById("bank-name").value = b.name || "";
+  document.getElementById("bank-start").value = b.vertragsstart || "";
+  document.getElementById("bank-saldo").value = fmtNum(b.saldo_start);
+  document.getElementById("bank-portfolio").value = b.hat_portfolio ? "ja" : "nein";
+  document.getElementById("bank-kreditkarte").value = b.hat_kreditkarte ? "ja" : "nein";
+  document.getElementById("bank-owners").innerHTML = "";
+  const ow = Array.isArray(b.eigentuemer) ? b.eigentuemer : [];
+  if (ow.length > 0) { ow.forEach((o) => addOwnerRow(o.name, o.anteil)); bankOwnersShowEditor(true); }
+  else { bankOwnersShowEditor(false); }
+  updateOwnerSum();
+  document.getElementById("bank-form-title").textContent = "Bank bearbeiten";
+  document.getElementById("bank-cancel").classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+bankForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = document.getElementById("bank-id").value;
+  const name = document.getElementById("bank-name").value.trim();
+  if (!name) { showMsg(document.getElementById("bank-msg"), "Bitte einen Banknamen eingeben.", "error"); return; }
+  const payload = {
+    name,
+    vertragsstart: document.getElementById("bank-start").value || null,
+    saldo_start: numDE(document.getElementById("bank-saldo").value),
+    hat_portfolio: document.getElementById("bank-portfolio").value === "ja",
+    hat_kreditkarte: document.getElementById("bank-kreditkarte").value === "ja",
+    eigentuemer: document.getElementById("bank-owner-editor").classList.contains("hidden") ? [] : readOwners(),
+  };
+  let error;
+  if (id) ({ error } = await sb.from("banks").update(payload).eq("id", id));
+  else    ({ error } = await sb.from("banks").insert([payload]));
+  if (error) { showMsg(document.getElementById("bank-msg"), "Fehler: " + error.message, "error"); return; }
+  bankReset();
+  loadBanks();
+});
+
+document.getElementById("banks-body").addEventListener("click", async (e) => {
+  const del = e.target.getAttribute("data-bdel");
+  const edit = e.target.getAttribute("data-bedit");
+  if (del) {
+    if (!confirm("Diese Bank wirklich löschen?")) return;
+    const { error } = await sb.from("banks").delete().eq("id", del);
+    if (error) alert("Fehler: " + error.message); else loadBanks();
+  }
+  if (edit) {
+    const b = banks.find((x) => x.id === edit);
+    if (b) bankStartEdit(b);
+  }
+});
+
+// ======================================================================
+//  Dashboard-Cockpit (nur Sicht des angemeldeten Nutzers)
+// ======================================================================
+let dashBankFilter = new Set();   // leer = alle Banken
+function bankSelected(name) { return dashBankFilter.size === 0 || dashBankFilter.has(name || ""); }
+
+// Nutzer-Anteil je Bank: 100% − Summe der Miteigentümer-Anteile (alle außer dem Nutzer)
+function userShare(bankName) {
+  const b = banks.find((x) => x.name === bankName);
+  if (!b) return 1;
+  const owners = Array.isArray(b.eigentuemer) ? b.eigentuemer : [];
+  if (owners.length === 0) return 1;
+  const u = (currentUserName || "").trim().toLowerCase();
+  const others = owners.filter((o) => (o.name || "").trim().toLowerCase() !== u)
+    .reduce((s, o) => s + (Number(o.anteil) || 0), 0);
+  return Math.max(0, Math.min(100, 100 - others)) / 100;
+}
+
+function monthRange(minM, maxM) {
+  const out = [];
+  let [y, m] = minM.split("-").map(Number);
+  const [ey, em] = maxM.split("-").map(Number);
+  while (y < ey || (y === ey && m <= em)) {
+    out.push(`${y}-${String(m).padStart(2, "0")}`);
+    m++; if (m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+const fmtMonthLong = (m) => new Date(m + "-01").toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+const fmtMonthShort = (m) => { const [y, mo] = m.split("-"); return mo + "/" + y.slice(2); };
+
+function renderDashBankFilter() {
+  const wrap = document.getElementById("dash-bank-filter");
+  if (!wrap) return;
+  const names = bankNames();
+  wrap.innerHTML = names.length === 0
+    ? `<span style="color:var(--muted);font-size:13px">Noch keine Banken angelegt – lege im Bereich „Banken" welche an.</span>`
+    : names.map((n) => `<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="dash-bank-cb" value="${n.replace(/"/g, "&quot;")}" ${bankSelected(n) ? "checked" : ""} style="width:auto"> ${esc(n)}</label>`).join("");
+}
+
+function renderDashboard() {
+  if (!document.getElementById("kpi-networth")) return;
+  // --- aktuelle Werte (gewichtet mit Nutzer-Anteil) ---
+  let liquid = 0;
+  banks.forEach((b) => {
+    if (!bankSelected(b.name)) return;
+    const start = Number(b.saldo_start) || 0;
+    const txSum = allRows.filter((r) => (r.bank || "") === b.name).reduce((s, r) => s + (Number(r.soll) || 0) + (Number(r.haben) || 0), 0);
+    liquid += (start + txSum) * userShare(b.name);
+  });
+  let pInv = 0, pWert = 0;
+  const latest = {};
+  portfolioRows.forEach((r) => {
+    const bank = r.bank || "";
+    if (!bankSelected(bank)) return;
+    const key = bank + "|" + (r.bezeichnung || "");
+    const st = (r.datum || "") + (r.created_at || "");
+    if (!latest[key] || st >= latest[key].st) latest[key] = { ...r, st, bank };
+  });
+  Object.values(latest).forEach((r) => { const sh = userShare(r.bank); pInv += (Number(r.investiert) || 0) * sh; pWert += (Number(r.wert) || 0) * sh; });
+  const pGain = pWert - pInv, pPct = pInv ? pGain / pInv * 100 : 0;
+  let immoEk = 0;
+  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { immoEk += immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100); });
+  let betVerm = 0;
+  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { betVerm += betKPIs(d).vermoegen; });
+  let pensWert = 0;
+  (typeof pensRows !== "undefined" ? pensRows : []).forEach((d) => { pensWert += (typeof pensCurrentWert === "function" ? pensCurrentWert(d.id) : 0); });
+  const networth = liquid + pWert + immoEk + betVerm + pensWert;
+
+  let cfEin = 0, cfAus = 0;
+  allRows.forEach((r) => {
+    if (r.umbuchung || !dateInRange(r.buchungsdatum) || !bankSelected(r.bank || "")) return;
+    const sh = userShare(r.bank || "");
+    cfEin += (Number(r.haben) || 0) * sh;
+    cfAus += (Number(r.soll) || 0) * sh;
+  });
+
+  document.getElementById("kpi-networth").textContent = euro(networth);
+  document.getElementById("kpi-liquid").textContent = euro(liquid);
+  document.getElementById("kpi-portfolio").textContent = euro(pWert);
+  const gainEl = document.getElementById("kpi-portfolio-gain");
+  gainEl.textContent = pWert ? `Gewinn ${euro(pGain)} (${pPct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %)` : "";
+  gainEl.style.color = pGain >= 0 ? "#2E7D32" : "#C62828";
+  const cfEl = document.getElementById("kpi-cashflow");
+  const cfNet = cfEin + cfAus;
+  cfEl.textContent = euro(cfNet);
+  cfEl.className = "v " + (cfNet >= 0 ? "pos" : "neg");
+
+  // Ausgaben (Zeitraum) – als positiver Betrag
+  document.getElementById("kpi-ausgaben").textContent = euro(Math.abs(cfAus));
+  // Ausgaben letzter Kalendermonat (unabhängig vom Zeitraumfilter)
+  const now = new Date();
+  const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lmKey = `${lm.getFullYear()}-${String(lm.getMonth() + 1).padStart(2, "0")}`;
+  let ausLM = 0;
+  allRows.forEach((r) => {
+    if (r.umbuchung || !r.buchungsdatum || !bankSelected(r.bank || "")) return;
+    if (String(r.buchungsdatum).slice(0, 7) !== lmKey) return;
+    ausLM += (Number(r.soll) || 0) * userShare(r.bank || "");
+  });
+  document.getElementById("kpi-ausgaben-lm").textContent = euro(Math.abs(ausLM));
+  // Passives Einkommen: Netto-Miete (Immobilien) + Netto-Ertrag (Beteiligungen)
+  const passivM = currentPassiveIncome();
+  document.getElementById("kpi-passiv").textContent = euro(passivM);
+  document.getElementById("kpi-passiv-jahr").textContent = euro(passivM * 12);
+
+  // Latente Steuer (26 %) auf nicht realisierte Gewinne (ETFs + Beteiligungen)
+  let etfGain = 0;
+  Object.values(latest).forEach((r) => { const g = (Number(r.wert) || 0) - (Number(r.investiert) || 0); if (g > 0) etfGain += g * userShare(r.bank); });
+  let betGain = 0;
+  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); if (g > 0) betGain += g; });
+  const latSteuer = 0.26 * (etfGain + betGain);
+  document.getElementById("kpi-lat-steuer").textContent = euro(latSteuer);
+  const nwNetEl = document.getElementById("kpi-networth-net");
+  const nwNet = networth - latSteuer;
+  nwNetEl.textContent = euro(nwNet);
+  nwNetEl.className = "v " + (nwNet >= 0 ? "pos" : "neg");
+
+  // ---- Finanzielle Freiheit ----
+  const ffNow = new Date();
+  const cmKey = `${ffNow.getFullYear()}-${String(ffNow.getMonth() + 1).padStart(2, "0")}`;
+  const sD = new Date(ffNow.getFullYear(), ffNow.getMonth() - 12, 1);
+  const sKey = `${sD.getFullYear()}-${String(sD.getMonth() + 1).padStart(2, "0")}`;
+  let aus12 = 0;
+  allRows.forEach((r) => {
+    if (r.umbuchung || !r.buchungsdatum || !bankSelected(r.bank || "")) return;
+    const m = String(r.buchungsdatum).slice(0, 7);
+    if (m < sKey || m >= cmKey) return;   // letzte 12 volle Monate
+    aus12 += (Number(r.soll) || 0) * userShare(r.bank || "");
+  });
+  const avgAus = Math.abs(aus12) / 12;
+  // verfügbares Vermögen: nach latenter Steuer, ohne langfristig gebundene Anlagen (liquide voll)
+  let avail = liquid;
+  Object.values(latest).forEach((r) => {
+    if ((r.bindung || "") === "langfristig") return;
+    const sh = userShare(r.bank);
+    const wert = (Number(r.wert) || 0) * sh;
+    const gain = ((Number(r.wert) || 0) - (Number(r.investiert) || 0)) * sh;
+    avail += wert - 0.26 * Math.max(0, gain);
+  });
+  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100); });
+  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { if ((d.bindung || "") === "langfristig") return; const v = betKPIs(d).vermoegen; const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); avail += v - 0.26 * Math.max(0, g); });
+  (typeof pensRows !== "undefined" ? pensRows : []).forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += pensCurrentWert(d.id); });
+  const luecke = avgAus - passivM;
+  document.getElementById("ff-ausgaben").textContent = euro(avgAus);
+  document.getElementById("ff-passiv").textContent = euro(passivM);
+  const lEl = document.getElementById("ff-luecke");
+  lEl.textContent = euro(luecke); lEl.className = "v " + (luecke > 0 ? "neg" : "pos");
+  document.getElementById("ff-verfuegbar").textContent = euro(Math.max(0, avail));
+  const res = document.getElementById("ff-result");
+  if (luecke <= 0) {
+    res.textContent = "unbegrenzt – passives Einkommen deckt die Ausgaben";
+    res.style.color = "var(--green)";
+  } else {
+    const monate = avail / luecke, jahre = monate / 12;
+    res.textContent = `${monate.toLocaleString("de-DE", { maximumFractionDigits: 0 })} Monate (${jahre.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Jahre)`;
+    res.style.color = "var(--text)";
+  }
+
+  drawWealthChart(document.getElementById("dash-networth-chart"), wealthSeries());
+  drawCashflowChart(document.getElementById("dash-cashflow-chart"), cashflowSeries());
+  renderDashCat();
+  drawDonut(document.getElementById("dash-alloc"), [
+    { label: "Liquide Mittel", value: Math.max(0, liquid), color: "#2F5DA8" },
+    { label: "Investiert (Portfolio)", value: Math.max(0, pWert), color: "#2E7D32" },
+    { label: "Immobilien (EK)", value: Math.max(0, immoEk), color: "#E0A800" },
+    { label: "Beteiligungen", value: Math.max(0, betVerm), color: "#6B6B6B" },
+    { label: "Pensionsfonds", value: Math.max(0, pensWert), color: "#5B86C9" },
+  ]);
+  renderDashBindung(latest);
+}
+
+// Kapitalbindung über alle Anlageklassen (gewichtet mit Nutzer-Anteil)
+function renderDashBindung(portfolioLatest) {
+  const body = document.getElementById("dash-bindung-body");
+  if (!body) return;
+  const bind = {};
+  const add = (key, val) => { const k = (key || "").trim() || "Nicht zugeordnet"; bind[k] = (bind[k] || 0) + val; };
+  Object.values(portfolioLatest || {}).forEach((r) => add(r.bindung, (Number(r.wert) || 0) * userShare(r.bank)));
+  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => add(d.bindung, immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100)));
+  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => add(d.bindung, betKPIs(d).vermoegen));
+  (typeof pensRows !== "undefined" ? pensRows : []).forEach((d) => add(d.bindung, pensCurrentWert(d.id)));
+  const order = ["kurzfristig", "mittelfristig", "langfristig", "Nicht zugeordnet"];
+  const keys = order.filter((k) => bind[k] != null);
+  body.innerHTML = "";
+  if (keys.length === 0) { body.innerHTML = `<tr><td colspan="4" class="empty">Keine Daten.</td></tr>`; return; }
+  const total = keys.reduce((s, k) => s + bind[k], 0);
+  const max = Math.max(1, ...keys.map((k) => Math.abs(bind[k])));
+  keys.forEach((k) => {
+    const v = bind[k]; const pct = total ? v / total * 100 : 0;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${k}</td><td class="num">${euro(v)}</td><td class="num">${pct.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %</td><td class="barcell"><div class="bar"><div class="bar-in" style="width:${Math.max(0, v / max * 100).toFixed(1)}%;background:#2F5DA8"></div></div></td>`;
+    body.appendChild(tr);
+  });
+}
+
+function netWorthSeries() {
+  const md = [];
+  allRows.forEach((r) => { if (r.buchungsdatum) md.push(r.buchungsdatum.slice(0, 7)); });
+  portfolioRows.forEach((r) => { if (r.datum) md.push(r.datum.slice(0, 7)); });
+  banks.forEach((b) => { if (b.vertragsstart) md.push(b.vertragsstart.slice(0, 7)); });
+  if (md.length === 0) return [];
+  let months = monthRange(md.reduce((a, b) => a < b ? a : b), md.reduce((a, b) => a > b ? a : b));
+  const von = document.getElementById("filter-von").value, bis = document.getElementById("filter-bis").value;
+  if (von) months = months.filter((m) => m >= von.slice(0, 7));
+  if (bis) months = months.filter((m) => m <= bis.slice(0, 7));
+  const posSnaps = {};
+  portfolioRows.forEach((r) => {
+    if (!r.datum) return;
+    const bank = r.bank || "";
+    if (!bankSelected(bank)) return;
+    const key = bank + "|" + (r.bezeichnung || "");
+    (posSnaps[key] = posSnaps[key] || []).push({ m: r.datum.slice(0, 7), wert: Number(r.wert) || 0, bank });
+  });
+  Object.values(posSnaps).forEach((a) => a.sort((x, y) => x.m < y.m ? -1 : 1));
+  return months.map((M) => {
+    let liquid = 0;
+    banks.forEach((b) => {
+      if (!bankSelected(b.name)) return;
+      const start = Number(b.saldo_start) || 0;
+      const txSum = allRows.filter((r) => (r.bank || "") === b.name && r.buchungsdatum && r.buchungsdatum.slice(0, 7) <= M).reduce((s, r) => s + (Number(r.soll) || 0) + (Number(r.haben) || 0), 0);
+      liquid += (start + txSum) * userShare(b.name);
+    });
+    let pw = 0;
+    Object.values(posSnaps).forEach((arr) => { let last = null; for (const s of arr) { if (s.m <= M) last = s; else break; } if (last) pw += last.wert * userShare(last.bank); });
+    return { m: M, v: liquid + pw };
+  });
+}
+
+function cashflowSeries() {
+  const map = {};
+  allRows.forEach((r) => {
+    if (!r.buchungsdatum || !bankSelected(r.bank || "")) return;
+    const M = r.buchungsdatum.slice(0, 7);
+    if (!map[M]) map[M] = { ein: 0, aus: 0 };
+    const sh = userShare(r.bank || "");
+    map[M].ein += (Number(r.haben) || 0) * sh;
+    map[M].aus += (Number(r.soll) || 0) * sh;
+  });
+  let months = Object.keys(map).sort();
+  const von = document.getElementById("filter-von").value, bis = document.getElementById("filter-bis").value;
+  if (von) months = months.filter((m) => m >= von.slice(0, 7));
+  if (bis) months = months.filter((m) => m <= bis.slice(0, 7));
+  return months.map((m) => ({ m, ein: map[m].ein, aus: map[m].aus }));
+}
+
+function renderDashCat() {
+  const el = document.getElementById("dash-cat");
+  if (!el) return;
+  const map = {};
+  allRows.forEach((r) => {
+    if (!dateInRange(r.buchungsdatum) || !bankSelected(r.bank || "")) return;
+    const soll = Number(r.soll) || 0;
+    if (soll >= 0) return;
+    const k = (r.kategorie || "").trim() || "Ohne Kategorie";
+    map[k] = (map[k] || 0) + Math.abs(soll) * userShare(r.bank || "");
+  });
+  const arr = Object.entries(map).map(([name, val]) => ({ name, val })).sort((a, b) => b.val - a.val).slice(0, 10);
+  if (arr.length === 0) { el.innerHTML = `<div class="empty">Keine Ausgaben im Zeitraum.</div>`; return; }
+  const max = Math.max(...arr.map((a) => a.val));
+  el.innerHTML = arr.map((a) => `<div class="hbar"><span class="hbar-label" title="${esc(a.name)}">${esc(a.name)}</span><span class="hbar-track"><span class="hbar-fill" style="width:${(a.val / max * 100).toFixed(1)}%"></span></span><span class="hbar-val neg">${euro(a.val)}</span></div>`).join("");
+}
+
+// Passives Einkommen / Monat (aktuell): Netto-Miete + Netto-Beteiligungsertrag
+function currentPassiveIncome() {
+  let p = 0;
+  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { const k = immoKPIs(d); if (k.verm) p += (k.mieteNetto || 0) * ((Number(d.anteil_user) || 100) / 100); });
+  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { p += betKPIs(d).jahresertrag / 12; });
+  return p;
+}
+function monthMinus(M, k) {
+  let [y, m] = M.split("-").map(Number);
+  m -= k; while (m <= 0) { m += 12; y--; }
+  return `${y}-${String(m).padStart(2, "0")}`;
+}
+
+// Datenreihe für das Vermögens-Stapeldiagramm: Cash + Investiert + Portfoliogewinn + Freiheit (Monate)
+function wealthSeries() {
+  const md = [];
+  allRows.forEach((r) => { if (r.buchungsdatum) md.push(r.buchungsdatum.slice(0, 7)); });
+  portfolioRows.forEach((r) => { if (r.datum) md.push(r.datum.slice(0, 7)); });
+  banks.forEach((b) => { if (b.vertragsstart) md.push(b.vertragsstart.slice(0, 7)); });
+  if (md.length === 0) return [];
+  let months = monthRange(md.reduce((a, b) => a < b ? a : b), md.reduce((a, b) => a > b ? a : b));
+  const von = document.getElementById("filter-von").value, bis = document.getElementById("filter-bis").value;
+  if (von) months = months.filter((m) => m >= von.slice(0, 7));
+  if (bis) months = months.filter((m) => m <= bis.slice(0, 7));
+  const posSnaps = {};
+  portfolioRows.forEach((r) => {
+    if (!r.datum) return;
+    const bank = r.bank || "";
+    if (!bankSelected(bank)) return;
+    const key = bank + "|" + (r.bezeichnung || "");
+    (posSnaps[key] = posSnaps[key] || []).push({ m: r.datum.slice(0, 7), wert: Number(r.wert) || 0, inv: Number(r.investiert) || 0, bank });
+  });
+  Object.values(posSnaps).forEach((a) => a.sort((x, y) => x.m < y.m ? -1 : 1));
+  const passiv = currentPassiveIncome();
+  return months.map((M) => {
+    let cash = 0;
+    banks.forEach((b) => {
+      if (!bankSelected(b.name)) return;
+      const start = Number(b.saldo_start) || 0;
+      const txSum = allRows.filter((r) => (r.bank || "") === b.name && r.buchungsdatum && r.buchungsdatum.slice(0, 7) <= M).reduce((s, r) => s + (Number(r.soll) || 0) + (Number(r.haben) || 0), 0);
+      cash += (start + txSum) * userShare(b.name);
+    });
+    let inv = 0, val = 0;
+    Object.values(posSnaps).forEach((arr) => { let last = null; for (const s of arr) { if (s.m <= M) last = s; else break; } if (last) { const sh = userShare(last.bank); inv += last.inv * sh; val += last.wert * sh; } });
+    const gain = val - inv;
+    const startKey = monthMinus(M, 11);
+    let aus = 0;
+    allRows.forEach((r) => { if (!r.buchungsdatum || !bankSelected(r.bank || "")) return; const m = r.buchungsdatum.slice(0, 7); if (m < startKey || m > M) return; aus += (Number(r.soll) || 0) * userShare(r.bank || ""); });
+    const avgAus = Math.abs(aus) / 12;
+    const avail = cash + (val - 0.26 * Math.max(0, gain));
+    const luecke = avgAus - passiv;
+    const freiheit = luecke > 0 ? avail / luecke : 0;
+    return { m: M, cash, invested: inv, gain, value: val, freiheit };
+  });
+}
+
+function drawWealthChart(el, points) {
+  if (!el) return;
+  if (points.length < 2) { el.innerHTML = `<div class="empty">Zu wenig Daten für einen Verlauf.</div>`; return; }
+  const W = 880, H = 300, padL = 74, padR = 58, padT = 20, padB = 48, n = points.length;
+  const maxEuro = Math.max(1, ...points.map((p) => p.cash + Math.max(0, p.value)));
+  const maxFrei = Math.max(12, ...points.map((p) => p.freiheit));
+  const X = (i) => padL + (n === 1 ? 0.5 : i / (n - 1)) * (W - padL - padR);
+  const Ye = (v) => H - padB - (v / maxEuro) * (H - padT - padB);
+  const Yf = (v) => H - padB - (Math.min(v, maxFrei) / maxFrei) * (H - padT - padB);
+  const t0 = points.map(() => 0);
+  const t1 = points.map((p) => p.cash);
+  const t2 = points.map((p) => p.cash + Math.min(p.invested, Math.max(0, p.value)));
+  const t3 = points.map((p) => p.cash + Math.max(0, p.value));
+  const band = (lo, hi) => {
+    const up = hi.map((v, i) => `${X(i).toFixed(1)},${Ye(v).toFixed(1)}`);
+    const dn = lo.map((v, i) => `${X(i).toFixed(1)},${Ye(v).toFixed(1)}`).reverse();
+    return [...up, ...dn].join(" ");
+  };
+  const freiLine = points.map((p, i) => `${X(i).toFixed(1)},${Yf(p.freiheit).toFixed(1)}`).join(" ");
+  const every = n <= 12 ? 1 : Math.ceil(n / 12);
+  let xlab = "";
+  points.forEach((p, i) => { if (i % every === 0 || i === n - 1) xlab += `<text x="${X(i).toFixed(1)}" y="${H - padB + 16}" fill="#6B6B6B" font-size="11" text-anchor="middle">${fmtMonthShort(p.m)}</text>`; });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="${band(t0, t1)}" fill="#2F5DA8" fill-opacity="0.85"/>
+    <polygon points="${band(t1, t2)}" fill="#C62828" fill-opacity="0.85"/>
+    <polygon points="${band(t2, t3)}" fill="#E0A800" fill-opacity="0.9"/>
+    <polyline points="${freiLine}" fill="none" stroke="#2E7D32" stroke-width="2.5"/>
+    <text x="6" y="${padT}" fill="#6B6B6B" font-size="11">${Math.round(maxEuro).toLocaleString("de-DE")} €</text>
+    <text x="6" y="${H - padB}" fill="#6B6B6B" font-size="11">0 €</text>
+    <text x="${W - padR + 6}" y="${padT}" fill="#2E7D32" font-size="11">${Math.round(maxFrei)}</text>
+    <text x="${W - padR + 6}" y="${H - padB}" fill="#2E7D32" font-size="11">0</text>
+    ${xlab}
+  </svg>
+  <div class="donut-legend" style="flex-direction:row;gap:16px;margin-top:8px;flex-wrap:wrap">
+    <span><i style="background:#2F5DA8"></i>Cash</span>
+    <span><i style="background:#C62828"></i>Investiert</span>
+    <span><i style="background:#E0A800"></i>Portfoliogewinn €</span>
+    <span><i style="background:#2E7D32"></i>Freiheit in Monaten (rechte Achse)</span>
+  </div>`;
+  const svg = el.querySelector("svg");
+  let tip = el.querySelector(".chart-tip");
+  if (!tip) { tip = document.createElement("div"); tip.className = "chart-tip"; el.appendChild(tip); }
+  svg.addEventListener("mousemove", (e) => {
+    const rect = svg.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) / rect.width * W;
+    let best = 0, bd = Infinity;
+    points.forEach((p, i) => { const d = Math.abs(X(i) - sx); if (d < bd) { bd = d; best = i; } });
+    const p = points[best];
+    tip.innerHTML = `<b>${fmtMonthLong(p.m)}</b><br>Cash: ${euro(p.cash)}<br>Investiert: ${euro(p.invested)}<br>Portfoliogewinn: ${euro(p.gain)}<br>Gesamt: ${euro(p.cash + Math.max(0, p.value))}<br>Freiheit: ${p.freiheit.toLocaleString("de-DE", { maximumFractionDigits: 0 })} Monate`;
+    tip.style.left = Math.max(80, Math.min(rect.width - 80, (X(best) / W) * rect.width)) + "px";
+    tip.style.top = ((Ye(p.cash + Math.max(0, p.value)) / H) * rect.height) + "px";
+    tip.style.display = "";
+  });
+  svg.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+}
+
+// ---- Diagramm-Helfer ----
+function drawAreaChart(el, points) {
+  if (!el) return;
+  if (points.length < 2) { el.innerHTML = `<div class="empty">Zu wenig Daten für einen Verlauf.</div>`; return; }
+  const W = 820, H = 240, padL = 64, padR = 16, padT = 20, padB = 42, n = points.length;
+  const maxV = Math.max(...points.map((p) => p.v), 1), minV = Math.min(...points.map((p) => p.v), 0);
+  const X = (i) => padL + (n === 1 ? 0.5 : i / (n - 1)) * (W - padL - padR);
+  const Y = (v) => H - padB - (maxV === minV ? 0.5 : (v - minV) / (maxV - minV)) * (H - padT - padB);
+  const line = points.map((p, i) => `${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(" ");
+  const area = `${X(0).toFixed(1)},${H - padB} ${line} ${X(n - 1).toFixed(1)},${H - padB}`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="${area}" fill="rgba(47,93,168,0.15)"/>
+    <polyline points="${line}" fill="none" stroke="#2F5DA8" stroke-width="2.5"/>
+    <line id="da-guide" y1="${padT}" y2="${H - padB}" stroke="#C4C4C4" stroke-width="1" style="display:none"/>
+    <circle id="da-dot" r="4" fill="#2F5DA8" stroke="#FFFFFF" stroke-width="1.5" style="display:none"/>
+    <text x="${padL}" y="${padT - 6}" fill="#6B6B6B" font-size="12">${Math.round(maxV).toLocaleString("de-DE")} €</text>
+    <text x="${padL}" y="${H - padB + 16}" fill="#6B6B6B" font-size="12">${fmtMonthShort(points[0].m)}</text>
+    <text x="${W - padR}" y="${H - padB + 16}" fill="#6B6B6B" font-size="12" text-anchor="end">${fmtMonthShort(points[n - 1].m)}</text>
+  </svg><div id="da-tip" class="chart-tip" style="display:none"></div>`;
+  const svg = el.querySelector("svg"), guide = el.querySelector("#da-guide"), dot = el.querySelector("#da-dot"), tip = el.querySelector("#da-tip");
+  svg.addEventListener("mousemove", (e) => {
+    const rect = svg.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) / rect.width * W;
+    let best = 0, bd = Infinity;
+    points.forEach((p, i) => { const d = Math.abs(X(i) - sx); if (d < bd) { bd = d; best = i; } });
+    const p = points[best], gx = X(best), gy = Y(p.v);
+    guide.setAttribute("x1", gx); guide.setAttribute("x2", gx); guide.style.display = "";
+    dot.setAttribute("cx", gx); dot.setAttribute("cy", gy); dot.style.display = "";
+    tip.innerHTML = `<b>${fmtMonthLong(p.m)}</b><br>Vermögen: <b>${euro(p.v)}</b>`;
+    tip.style.left = Math.max(70, Math.min(rect.width - 70, (gx / W) * rect.width)) + "px";
+    tip.style.top = ((gy / H) * rect.height) + "px"; tip.style.display = "";
+  });
+  svg.addEventListener("mouseleave", () => { guide.style.display = "none"; dot.style.display = "none"; tip.style.display = "none"; });
+}
+
+function drawCashflowChart(el, points) {
+  if (!el) return;
+  if (points.length === 0) { el.innerHTML = `<div class="empty">Keine Buchungen im Zeitraum.</div>`; return; }
+  const W = 820, H = 240, padL = 64, padR = 16, padT = 20, padB = 42, n = points.length;
+  const maxV = Math.max(1, ...points.map((p) => Math.max(p.ein, Math.abs(p.aus))));
+  const slot = (W - padL - padR) / n, bw = Math.min(16, slot / 2 - 2);
+  let bars = "", labels = "";
+  const every = n <= 12 ? 1 : Math.ceil(n / 12);
+  points.forEach((p, i) => {
+    const cx = padL + slot * i + slot / 2;
+    const einH = (p.ein / maxV) * (H - padT - padB), ausH = (Math.abs(p.aus) / maxV) * (H - padT - padB);
+    bars += `<rect x="${(cx - bw - 1).toFixed(1)}" y="${(H - padB - einH).toFixed(1)}" width="${bw}" height="${einH.toFixed(1)}" fill="#2E7D32"/>`;
+    bars += `<rect x="${(cx + 1).toFixed(1)}" y="${(H - padB - ausH).toFixed(1)}" width="${bw}" height="${ausH.toFixed(1)}" fill="#C62828"/>`;
+    if (i % every === 0) labels += `<text x="${cx.toFixed(1)}" y="${H - padB + 16}" fill="#6B6B6B" font-size="11" text-anchor="middle">${fmtMonthShort(p.m)}</text>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <line x1="${padL}" y1="${H - padB}" x2="${W - padR}" y2="${H - padB}" stroke="#E0E0E0"/>
+    ${bars}${labels}
+    <text x="${padL}" y="${padT - 6}" fill="#6B6B6B" font-size="12">${Math.round(maxV).toLocaleString("de-DE")} €</text>
+  </svg>
+  <div class="donut-legend" style="flex-direction:row;gap:18px;margin-top:8px"><span><i style="background:#2E7D32"></i>Einnahmen</span><span><i style="background:#C62828"></i>Ausgaben</span></div>`;
+}
+
+function drawDonut(el, segs) {
+  if (!el) return;
+  const total = segs.reduce((s, x) => s + x.value, 0);
+  if (total <= 0) { el.innerHTML = `<div class="empty">Keine Daten.</div>`; return; }
+  const r = 60, c = 2 * Math.PI * r, cx = 80, cy = 80, sw = 24;
+  let off = 0, circles = "";
+  segs.forEach((s) => {
+    const len = (s.value / total) * c;
+    circles += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${sw}" stroke-dasharray="${len.toFixed(2)} ${(c - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    off += len;
+  });
+  const legend = segs.map((s) => `<span><i style="background:${s.color}"></i>${esc(s.label)} – ${euro(s.value)} (${(s.value / total * 100).toLocaleString("de-DE", { maximumFractionDigits: 0 })} %)</span>`).join("");
+  el.innerHTML = `<div class="donut-wrap"><svg width="160" height="160" viewBox="0 0 160 160">${circles}</svg><div class="donut-legend">${legend}</div></div>`;
+}
+
+// ---- Dashboard-Filter ----
+document.querySelectorAll("[data-period]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const p = btn.getAttribute("data-period"), now = new Date();
+    const pad = (x) => String(x).padStart(2, "0");
+    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const von = document.getElementById("filter-von"), bis = document.getElementById("filter-bis");
+    if (p === "all") { von.value = ""; bis.value = ""; }
+    else if (p === "month") { von.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`; bis.value = today; }
+    else if (p === "year") { von.value = `${now.getFullYear()}-01-01`; bis.value = today; }
+    applyFilters();
+  });
+});
+document.getElementById("dash-bank-filter").addEventListener("change", (e) => {
+  if (!e.target.classList.contains("dash-bank-cb")) return;
+  const checked = [...document.querySelectorAll(".dash-bank-cb:checked")].map((c) => c.value);
+  dashBankFilter = (checked.length === bankNames().length) ? new Set() : new Set(checked);
+  renderDashboard();
+});
+
+// ======================================================================
+//  Immobilien
+// ======================================================================
+let immoRows = [];
+let activeImmo = null;  // null = Übersicht, sonst Immobilien-id
+
+function renderImmoSubmenu() {
+  const wrap = document.getElementById("immo-submenu");
+  if (!wrap) return;
+  const items = [{ key: "", label: "Übersicht" }].concat(immoRows.map((d) => ({ key: d.id, label: d.bezeichnung || "(ohne Name)" })));
+  wrap.innerHTML = items.map((it) =>
+    `<a href="#" class="subnav-item ${(activeImmo || "") === it.key ? "active" : ""}" data-immo="${it.key}">${esc(it.label)}</a>`
+  ).join("");
+}
+function immoName(id) { const d = immoRows.find((x) => x.id === id); return d ? (d.bezeichnung || "(ohne Name)") : ""; }
+document.getElementById("immo-submenu").addEventListener("click", (e) => {
+  const a = e.target.closest(".subnav-item"); if (!a) return;
+  e.preventDefault();
+  const id = a.getAttribute("data-immo");
+  activeImmo = id || null;
+  showPage("immobilien", activeImmo ? "Immobilien – " + immoName(activeImmo) : "Immobilien");
+  renderImmoSubmenu();
+  renderImmo();
+});
+
+function applyImmoMode() {
+  const overview = !activeImmo;
+  document.getElementById("immo-cards").classList.toggle("hidden", !overview);
+  document.getElementById("immo-addbar").classList.toggle("hidden", !overview);
+  document.getElementById("immo-tx").classList.toggle("hidden", overview);
+  const lbl = document.getElementById("immo-mode-label");
+  if (lbl) lbl.textContent = overview ? "Übersicht – alle Immobilien" : "Immobilie: " + immoName(activeImmo);
+}
+
+function renderImmoTx() {
+  if (!activeImmo) return;
+  const rows = allRows.filter((r) => r.immo_id === activeImmo);
+  let ein = 0, aus = 0;
+  rows.forEach((r) => { ein += Number(r.haben) || 0; aus += Number(r.soll) || 0; });
+  document.getElementById("immo-tx-ein").textContent = euro(ein);
+  document.getElementById("immo-tx-aus").textContent = euro(aus);
+  const sEl = document.getElementById("immo-tx-saldo");
+  sEl.textContent = euro(ein + aus); sEl.className = "v " + ((ein + aus) >= 0 ? "pos" : "neg");
+  const body = document.getElementById("immo-tx-body");
+  if (rows.length === 0) { body.innerHTML = `<tr><td colspan="6" class="empty">Noch keine Transaktionen zugeordnet. Im Bereich „Transaktionen" eine Buchung bearbeiten und dort die Immobilie wählen.</td></tr>`; return; }
+  body.innerHTML = [...rows].sort((a, b) => (a.buchungsdatum < b.buchungsdatum ? 1 : -1)).map((r) =>
+    `<tr><td>${r.buchungsdatum ? new Date(r.buchungsdatum).toLocaleDateString("de-DE") : ""}</td><td>${esc(r.beschreibung)}</td><td>${esc(r.kategorie)}</td><td>${esc(r.bank)}</td><td class="num neg">${r.soll != null ? euro(r.soll) : ""}</td><td class="num pos">${r.haben != null ? euro(r.haben) : ""}</td></tr>`
+  ).join("");
+}
+
+function populateImmoSelect() {
+  const el = document.getElementById("f-immo");
+  if (!el) return;
+  const cur = el.value;
+  el.innerHTML = `<option value="">—</option>` + immoRows.map((d) => `<option value="${d.id}" ${d.id === cur ? "selected" : ""}>${esc(d.bezeichnung || "(ohne Name)")}</option>`).join("");
+}
+const pctDE = (v) => (v == null || isNaN(v) ? "–" : Number(v).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " %");
+const num1 = (v) => Number(v || 0).toLocaleString("de-DE", { maximumFractionDigits: 1 });
+
+function immoKPIs(d) {
+  const n = (v) => Number(v) || 0;
+  const marktwert = n(d.marktwert), restschuld = n(d.restschuld);
+  const ekWert = marktwert - restschuld;
+  const ltv = marktwert > 0 ? restschuld / marktwert * 100 : 0;
+  const verm = d.typ === "vermietung";
+  const leer = Math.min(100, Math.max(0, n(d.leerstand)));
+  const effMiete = verm ? n(d.bruttomiete) * (1 - leer / 100) : 0;
+  const neben = n(d.condominio) + n(d.versicherung) + n(d.instandhaltung);
+  const imuM = d.imu_faellig ? n(d.imu_jahr) / 12 : 0;
+  let steuerM = 0;
+  if (verm) {
+    if (d.steuermodell === "cedolare") steuerM = effMiete * 0.21;
+    else if (d.steuermodell === "irpef") steuerM = Math.max(0, effMiete - neben) * (n(d.grenzsteuersatz) / 100);
+  }
+  const mieteNetto = verm ? (effMiete - neben - imuM - steuerM) : 0;
+  const nettorendite = marktwert > 0 ? (mieteNetto * 12) / marktwert * 100 : 0;
+  const jahreszins = restschuld * n(d.zinssatz) / 100;
+  const roe = ekWert !== 0 ? ((mieteNetto * 12) - jahreszins) / ekWert * 100 : 0;
+  const cashflowSchuld = mieteNetto - n(d.rate_monat);
+  const gesamtrendite = verm ? (nettorendite + n(d.wertsteigerung)) : n(d.wertsteigerung);
+  return { ekWert, ltv, mieteNetto, nettorendite, roe, cashflowSchuld, gesamtrendite, verm };
+}
+
+async function loadImmo() {
+  const { data, error } = await sb.from("immobilien").select("*").order("created_at", { ascending: true });
+  if (error) { console.error(error); return; }
+  immoRows = data || [];
+  renderImmoSubmenu();
+  populateImmoSelect();
+  renderImmo();
+  if (typeof renderDashboard === "function") renderDashboard();
+}
+
+function selOpts(field, val, opts) {
+  return opts.map(([v, l]) => `<option value="${v}" ${(val || "") === v ? "selected" : ""}>${l}</option>`).join("");
+}
+function immoFieldsHTML(d) {
+  const v = (f) => fmtNum(d[f]);
+  return `
+    <div class="immo-section">
+      <h4>Grunddaten</h4>
+      <div class="immo-grid">
+        <div><label>Bezeichnung</label><input type="text" data-f="bezeichnung" value="${esc(d.bezeichnung || "")}" /></div>
+        <div><label>Typ</label><select data-f="typ">${selOpts("typ", d.typ, [["vermietung", "Vermietung"], ["eigennutzung", "Eigennutzung"]])}</select></div>
+        <div><label>Kaufjahr</label><input type="text" inputmode="numeric" data-f="kaufjahr" value="${d.kaufjahr || ""}" /></div>
+        <div><label>Kaufpreis (€)</label><input type="text" inputmode="decimal" data-f="kaufpreis" value="${v("kaufpreis")}" /></div>
+        <div><label>Kaufnebenkosten (€)</label><input type="text" inputmode="decimal" data-f="kaufnebenkosten" value="${v("kaufnebenkosten")}" /></div>
+        <div><label>Bindung</label><select data-f="bindung">${bindOptions(d.bindung)}</select></div>
+      </div>
+    </div>
+    <div class="immo-section">
+      <h4>Wert &amp; Finanzierung</h4>
+      <div class="immo-grid">
+        <div><label>Marktwert (€)</label><input type="text" inputmode="decimal" data-f="marktwert" value="${v("marktwert")}" /></div>
+        <div><label>Restschuld (€)</label><input type="text" inputmode="decimal" data-f="restschuld" value="${v("restschuld")}" /></div>
+        <div><label>Monatliche Rate (€)</label><input type="text" inputmode="decimal" data-f="rate_monat" value="${v("rate_monat")}" /></div>
+        <div data-fin><label>Zinssatz (%)</label><input type="text" inputmode="decimal" data-f="zinssatz" value="${v("zinssatz")}" /></div>
+        <div data-fin><label>Restlaufzeit (Jahre)</label><input type="text" inputmode="decimal" data-f="restlaufzeit" value="${v("restlaufzeit")}" /></div>
+        <div><label>Wertsteigerung p.a. (%)</label><input type="text" inputmode="decimal" data-f="wertsteigerung" value="${v("wertsteigerung")}" /></div>
+        <div><label>Dein Anteil (%)</label><input type="text" inputmode="decimal" data-f="anteil_user" value="${d.anteil_user != null ? fmtNum(d.anteil_user) : "100"}" /></div>
+      </div>
+    </div>
+    <div class="immo-section" data-miet>
+      <h4>Mieteinnahmen &amp; Kosten</h4>
+      <div class="immo-grid">
+        <div data-vermiet><label>Bruttomiete/Monat (€)</label><input type="text" inputmode="decimal" data-f="bruttomiete" value="${v("bruttomiete")}" /></div>
+        <div data-vermiet><label>Leerstandsquote (%)</label><input type="text" inputmode="decimal" data-f="leerstand" value="${v("leerstand")}" /></div>
+        <div><label>Condominio/Monat (€)</label><input type="text" inputmode="decimal" data-f="condominio" value="${v("condominio")}" /></div>
+        <div><label>Versicherung/Monat (€)</label><input type="text" inputmode="decimal" data-f="versicherung" value="${v("versicherung")}" /></div>
+        <div><label>Instandhaltung/Monat (€)</label><input type="text" inputmode="decimal" data-f="instandhaltung" value="${v("instandhaltung")}" /></div>
+        <div data-vermiet><label>Steuermodell</label><select data-f="steuermodell">${selOpts("steuermodell", d.steuermodell, [["cedolare", "Cedolare Secca 21%"], ["irpef", "Ordentlich (IRPEF)"], ["keine", "Keine"]])}</select></div>
+        <div data-irpef><label>Grenzsteuersatz (%)</label><input type="text" inputmode="decimal" data-f="grenzsteuersatz" value="${d.grenzsteuersatz != null ? fmtNum(d.grenzsteuersatz) : "23"}" /></div>
+        <div><label>IMU fällig</label><select data-f="imu_faellig"><option value="nein" ${!d.imu_faellig ? "selected" : ""}>Nein</option><option value="ja" ${d.imu_faellig ? "selected" : ""}>Ja</option></select></div>
+        <div data-imu><label>IMU/Jahr (€)</label><input type="text" inputmode="decimal" data-f="imu_jahr" value="${v("imu_jahr")}" /></div>
+      </div>
+    </div>
+    <div class="immo-section">
+      <h4>Kennzahlen</h4>
+      <div class="kpi-grid">
+        <div class="kpibox" data-miet><div class="kpi-k">Nettomietrendite n. St.</div><div class="kpi-v" data-k="nettorendite">–</div></div>
+        <div class="kpibox" data-miet><div class="kpi-k">Eigenkapitalrendite (ROE)</div><div class="kpi-v" data-k="roe">–</div></div>
+        <div class="kpibox" data-miet><div class="kpi-k">Mieteinnahmen netto/Monat</div><div class="kpi-v" data-k="mieteNetto">–</div></div>
+      </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="kpibox" data-miet><div class="kpi-k">Cashflow n. Schuldendienst/Monat</div><div class="kpi-v" data-k="cashflowSchuld">–</div></div>
+        <div class="kpibox"><div class="kpi-k">Gesamtrendite p.a.</div><div class="kpi-v" data-k="gesamtrendite">–</div></div>
+      </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:0">
+        <div class="kpibox"><div class="kpi-k">LTV</div><div class="kpi-v" data-k="ltv">–</div></div>
+        <div class="kpibox"><div class="kpi-k">EK-Wert</div><div class="kpi-v" data-k="ekWert">–</div></div>
+      </div>
+    </div>
+    <div class="immo-actions">
+      <button data-immo-save>Speichern</button>
+      <span data-immo-msg style="font-size:13px"></span>
+    </div>`;
+}
+
+function immoCardHTML(d) {
+  const k = immoKPIs(d);
+  return `<div class="immo-card collapsed" data-id="${d.id}">
+    <div class="immo-head" data-immo-toggle>
+      <span class="chev">▾</span>
+      <div class="titlewrap">
+        <div class="immo-title">${esc(d.bezeichnung || "Neue Immobilie")}</div>
+        <div class="immo-sub">${euro(Number(d.marktwert) || 0)} | EK: ${euro(k.ekWert)} | LTV: ${num1(k.ltv)} %</div>
+      </div>
+      <button class="iconbtn" data-immo-del title="Löschen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+    </div>
+    <div class="immo-body">${immoFieldsHTML(d)}</div>
+  </div>`;
+}
+
+function readImmoCard(card) {
+  const g = (f) => { const el = card.querySelector(`[data-f="${f}"]`); return el ? el.value : ""; };
+  return {
+    id: card.getAttribute("data-id") || null,
+    bezeichnung: g("bezeichnung") || null,
+    typ: g("typ") || "vermietung",
+    kaufjahr: g("kaufjahr") ? (parseInt(String(g("kaufjahr")).replace(/\D/g, "")) || null) : null,
+    kaufpreis: numDE(g("kaufpreis")), kaufnebenkosten: numDE(g("kaufnebenkosten")), marktwert: numDE(g("marktwert")), restschuld: numDE(g("restschuld")),
+    rate_monat: numDE(g("rate_monat")), zinssatz: numDE(g("zinssatz")), restlaufzeit: numDE(g("restlaufzeit")),
+    wertsteigerung: numDE(g("wertsteigerung")), bruttomiete: numDE(g("bruttomiete")), leerstand: numDE(g("leerstand")),
+    condominio: numDE(g("condominio")), versicherung: numDE(g("versicherung")), instandhaltung: numDE(g("instandhaltung")),
+    steuermodell: g("steuermodell") || "cedolare", grenzsteuersatz: numDE(g("grenzsteuersatz")),
+    imu_faellig: g("imu_faellig") === "ja", imu_jahr: numDE(g("imu_jahr")), anteil_user: numDE(g("anteil_user")),
+    bindung: g("bindung") || null,
+  };
+}
+
+function recomputeImmoCard(card) {
+  const d = readImmoCard(card);
+  const k = immoKPIs(d);
+  const verm = d.typ === "vermietung";
+  const schuldenfrei = (Number(d.restschuld) || 0) <= 0;
+  card.querySelectorAll("[data-vermiet]").forEach((e) => e.style.display = verm ? "" : "none");
+  card.querySelectorAll("[data-miet]").forEach((e) => e.style.display = verm ? "" : "none");
+  card.querySelectorAll("[data-irpef]").forEach((e) => e.style.display = (verm && d.steuermodell === "irpef") ? "" : "none");
+  card.querySelectorAll("[data-imu]").forEach((e) => e.style.display = d.imu_faellig ? "" : "none");
+  card.querySelectorAll("[data-fin]").forEach((e) => e.style.opacity = schuldenfrei ? "0.5" : "1");
+  const set = (key, val) => { const el = card.querySelector(`[data-k="${key}"]`); if (el) el.innerHTML = val; };
+  set("nettorendite", pctDE(k.nettorendite));
+  set("roe", schuldenfrei ? pctDE(k.nettorendite) : pctDE(k.roe));
+  set("mieteNetto", euro(k.mieteNetto));
+  const cfEl = card.querySelector('[data-k="cashflowSchuld"]');
+  if (cfEl) { cfEl.textContent = euro(k.cashflowSchuld); cfEl.style.color = k.cashflowSchuld >= 0 ? "var(--green)" : "var(--red)"; }
+  set("gesamtrendite", pctDE(k.gesamtrendite));
+  const ltvColor = k.ltv < 60 ? "var(--green)" : k.ltv <= 80 ? "var(--warning)" : "var(--red)";
+  set("ltv", `<span class="dot" style="background:${ltvColor}"></span>${num1(k.ltv)} %`);
+  set("ekWert", euro(k.ekWert));
+  const sub = card.querySelector(".immo-sub");
+  if (sub) sub.textContent = `${euro(Number(d.marktwert) || 0)} | EK: ${euro(k.ekWert)} | LTV: ${num1(k.ltv)} %`;
+  const title = card.querySelector(".immo-title");
+  if (title) title.textContent = d.bezeichnung || "Neue Immobilie";
+}
+
+function renderImmoSummary() {
+  let ek = 0, cf = 0, rSum = 0, rCount = 0;
+  immoRows.forEach((d) => {
+    const k = immoKPIs(d);
+    const share = (Number(d.anteil_user) || 100) / 100;
+    ek += k.ekWert * share;
+    if (k.verm) { cf += k.cashflowSchuld * share; rSum += k.nettorendite; rCount++; }
+  });
+  document.getElementById("immo-sum-ek").textContent = euro(ek);
+  const cfEl = document.getElementById("immo-sum-cf");
+  cfEl.textContent = euro(cf); cfEl.className = "v " + (cf >= 0 ? "pos" : "neg");
+  document.getElementById("immo-sum-rendite").textContent = rCount ? pctDE(rSum / rCount) : "–";
+}
+
+function renderImmo() {
+  const list = document.getElementById("immo-list");
+  if (!list) return;
+  const rows = activeImmo ? immoRows.filter((d) => d.id === activeImmo) : immoRows;
+  list.innerHTML = rows.map(immoCardHTML).join("");
+  document.getElementById("immo-empty").classList.toggle("hidden", immoRows.length > 0 || activeImmo);
+  list.querySelectorAll(".immo-card").forEach((card) => recomputeImmoCard(card));
+  renderImmoSummary();
+  applyImmoMode();
+  renderImmoTx();
+}
+
+const immoListEl = document.getElementById("immo-list");
+immoListEl.addEventListener("input", (e) => { const c = e.target.closest(".immo-card"); if (c) { recomputeImmoCard(c); renderImmoSummary(); } });
+immoListEl.addEventListener("change", (e) => { const c = e.target.closest(".immo-card"); if (c) { recomputeImmoCard(c); renderImmoSummary(); } });
+immoListEl.addEventListener("click", async (e) => {
+  const card = e.target.closest(".immo-card"); if (!card) return;
+  if (e.target.closest("[data-immo-del]")) {
+    e.stopPropagation();
+    if (!confirm("Diese Immobilie wirklich löschen?")) return;
+    const { error } = await sb.from("immobilien").delete().eq("id", card.getAttribute("data-id"));
+    if (error) alert("Fehler: " + error.message); else loadImmo();
+    return;
+  }
+  if (e.target.closest("[data-immo-save]")) {
+    const d = readImmoCard(card); const id = d.id; delete d.id;
+    const msg = card.querySelector("[data-immo-msg]");
+    let error;
+    if (id) ({ error } = await sb.from("immobilien").update(d).eq("id", id));
+    else ({ error } = await sb.from("immobilien").insert([d]));
+    if (error) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; return; }
+    msg.textContent = "Gespeichert."; msg.style.color = "var(--green)";
+    loadImmo();
+    return;
+  }
+  if (e.target.closest("[data-immo-toggle]")) card.classList.toggle("collapsed");
+});
+document.getElementById("immo-add").addEventListener("click", async () => {
+  const { error } = await sb.from("immobilien").insert([{ bezeichnung: "Neue Immobilie", typ: "vermietung", anteil_user: 100, steuermodell: "cedolare", imu_faellig: false }]);
+  if (error) { alert("Fehler beim Anlegen: " + error.message); return; }
+  loadImmo();
+});
+
+// ======================================================================
+//  Unternehmensbeteiligungen
+// ======================================================================
+let betRows = [];
+
+function betKPIs(d) {
+  const n = (v) => Number(v) || 0;
+  const zinsBrutto = n(d.darlehen) * n(d.zins) / 100;
+  const zinsNetto = zinsBrutto * 0.74;          // 26% Kapitalertragsteuer (IT)
+  const divNetto = d.dividende_netto ? n(d.dividende_jahr) : n(d.dividende_jahr) * 0.74;
+  const vermoegen = n(d.marktwert) + n(d.darlehen);
+  const ausschuettend = (d.zins_modus || "ausschuettend") === "ausschuettend";
+  const jahresertrag = divNetto + (ausschuettend ? zinsNetto : 0);
+  const basis = n(d.invest_hist) + n(d.darlehen);
+  const renditeKapital = basis > 0 ? jahresertrag / basis * 100 : null;
+  return { zinsNetto, zinsNettoM: zinsNetto / 12, divNetto, vermoegen, jahresertrag, monat: jahresertrag / 12, basis, renditeKapital, ausschuettend };
+}
+
+async function loadBet() {
+  const { data, error } = await sb.from("beteiligungen").select("*").order("created_at", { ascending: true });
+  if (error) { console.error(error); return; }
+  betRows = data || [];
+  renderBet();
+  if (typeof renderDashboard === "function") renderDashboard();
+}
+
+function betFieldsHTML(d) {
+  const v = (f) => fmtNum(d[f]);
+  return `
+    <div class="immo-section">
+      <h4>Beteiligung (Eigenkapital)</h4>
+      <div class="immo-grid">
+        <div><label>Unternehmensname</label><input type="text" data-f="name" value="${esc(d.name || "")}" /></div>
+        <div><label>Beteiligungsquote (%)</label><input type="text" inputmode="decimal" data-f="quote" value="${v("quote")}" /></div>
+        <div><label>Investiertes Kapital, histor. (€)</label><input type="text" inputmode="decimal" data-f="invest_hist" value="${v("invest_hist")}" /></div>
+        <div><label>Geschätzter Marktwert der Quote (€)</label><input type="text" inputmode="decimal" data-f="marktwert" value="${v("marktwert")}" /></div>
+        <div><label>Erw. Dividende/Jahr (€)</label><input type="text" inputmode="decimal" data-f="dividende_jahr" value="${v("dividende_jahr")}" /></div>
+        <div><label>Dividende bereits netto?</label><select data-f="dividende_netto"><option value="nein" ${!d.dividende_netto ? "selected" : ""}>Nein</option><option value="ja" ${d.dividende_netto ? "selected" : ""}>Ja</option></select></div>
+        <div><label>Bindung</label><select data-f="bindung">${bindOptions(d.bindung)}</select></div>
+      </div>
+    </div>
+    <div class="immo-section">
+      <h4>Gesellschafterdarlehen</h4>
+      <div class="immo-grid">
+        <div><label>Darlehensbetrag (€)</label><input type="text" inputmode="decimal" data-f="darlehen" value="${v("darlehen")}" /></div>
+        <div data-zinsfeld><label>Verzinsung p.a. (%)</label><input type="text" inputmode="decimal" data-f="zins" value="${v("zins")}" /></div>
+        <div data-zinsfeld><label>Zinsen-Modus</label><select data-f="zins_modus"><option value="ausschuettend" ${(d.zins_modus || "ausschuettend") === "ausschuettend" ? "selected" : ""}>Ausschüttend (Cash)</option><option value="thesaurierend" ${d.zins_modus === "thesaurierend" ? "selected" : ""}>Thesaurierend</option></select></div>
+        <div class="kpibox" style="align-self:end"><div class="kpi-k">Zinserträge netto (n. 26 %)</div><div class="kpi-v" data-k="zinsNetto" style="font-size:15px">–</div></div>
+      </div>
+    </div>
+    <div class="immo-section">
+      <h4>Kennzahlen</h4>
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpibox"><div class="kpi-k">Vermögenswert gesamt</div><div class="kpi-v" data-k="vermoegen">–</div></div>
+        <div class="kpibox"><div class="kpi-k">Jahresertrag netto</div><div class="kpi-v" data-k="jahresertrag">–</div></div>
+        <div class="kpibox"><div class="kpi-k">Rendite auf Kapital</div><div class="kpi-v" data-k="rendite">–</div></div>
+        <div class="kpibox"><div class="kpi-k">Monatlicher Nettoertrag</div><div class="kpi-v" data-k="monat">–</div></div>
+      </div>
+    </div>
+    <div class="immo-actions">
+      <button data-bet-save>Speichern</button>
+      <span data-bet-msg style="font-size:13px"></span>
+    </div>`;
+}
+
+function betCardHTML(d) {
+  const k = betKPIs(d);
+  return `<div class="immo-card collapsed" data-id="${d.id}">
+    <div class="immo-head" data-bet-toggle>
+      <span class="chev">▾</span>
+      <div class="titlewrap">
+        <div class="immo-title">${esc(d.name || "Neue Beteiligung")}</div>
+        <div class="immo-sub">${num1(Number(d.quote) || 0)} % | Schätzwert: ${euro(Number(d.marktwert) || 0)} | Jahresertrag netto: ${euro(k.jahresertrag)}</div>
+      </div>
+      <button class="iconbtn" data-bet-del title="Löschen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+    </div>
+    <div class="immo-body">${betFieldsHTML(d)}</div>
+  </div>`;
+}
+
+function readBetCard(card) {
+  const g = (f) => { const el = card.querySelector(`[data-f="${f}"]`); return el ? el.value : ""; };
+  return {
+    id: card.getAttribute("data-id") || null,
+    name: g("name") || null,
+    quote: numDE(g("quote")), invest_hist: numDE(g("invest_hist")), marktwert: numDE(g("marktwert")),
+    dividende_jahr: numDE(g("dividende_jahr")), dividende_netto: g("dividende_netto") === "ja",
+    darlehen: numDE(g("darlehen")), zins: numDE(g("zins")), zins_modus: g("zins_modus") || "ausschuettend",
+    bindung: g("bindung") || null,
+  };
+}
+
+function recomputeBetCard(card) {
+  const d = readBetCard(card);
+  const k = betKPIs(d);
+  const hatDarlehen = (Number(d.darlehen) || 0) > 0;
+  card.querySelectorAll("[data-zinsfeld]").forEach((e) => e.style.opacity = hatDarlehen ? "1" : "0.5");
+  const set = (key, val) => { const el = card.querySelector(`[data-k="${key}"]`); if (el) el.textContent = val; };
+  set("zinsNetto", euro(k.zinsNetto) + " /J · " + euro(k.zinsNettoM) + " /M");
+  set("vermoegen", euro(k.vermoegen));
+  set("jahresertrag", euro(k.jahresertrag));
+  set("rendite", k.renditeKapital == null ? "–" : pctDE(k.renditeKapital));
+  set("monat", euro(k.monat));
+  const sub = card.querySelector(".immo-sub");
+  if (sub) sub.textContent = `${num1(Number(d.quote) || 0)} % | Schätzwert: ${euro(Number(d.marktwert) || 0)} | Jahresertrag netto: ${euro(k.jahresertrag)}`;
+  const title = card.querySelector(".immo-title");
+  if (title) title.textContent = d.name || "Neue Beteiligung";
+}
+
+function renderBetSummary() {
+  let verm = 0, ertrag = 0;
+  betRows.forEach((d) => { const k = betKPIs(d); verm += k.vermoegen; ertrag += k.jahresertrag; });
+  document.getElementById("bet-sum-verm").textContent = euro(verm);
+  document.getElementById("bet-sum-ertrag").textContent = euro(ertrag);
+  document.getElementById("bet-sum-monat").textContent = euro(ertrag / 12);
+}
+
+function renderBet() {
+  const list = document.getElementById("bet-list");
+  if (!list) return;
+  list.innerHTML = betRows.map(betCardHTML).join("");
+  document.getElementById("bet-empty").classList.toggle("hidden", betRows.length > 0);
+  list.querySelectorAll(".immo-card").forEach((card) => recomputeBetCard(card));
+  renderBetSummary();
+}
+
+const betListEl = document.getElementById("bet-list");
+betListEl.addEventListener("input", (e) => { const c = e.target.closest(".immo-card"); if (c) { recomputeBetCard(c); renderBetSummary(); } });
+betListEl.addEventListener("change", (e) => { const c = e.target.closest(".immo-card"); if (c) { recomputeBetCard(c); renderBetSummary(); } });
+betListEl.addEventListener("click", async (e) => {
+  const card = e.target.closest(".immo-card"); if (!card) return;
+  if (e.target.closest("[data-bet-del]")) {
+    e.stopPropagation();
+    if (!confirm("Diese Beteiligung wirklich löschen?")) return;
+    const { error } = await sb.from("beteiligungen").delete().eq("id", card.getAttribute("data-id"));
+    if (error) alert("Fehler: " + error.message); else loadBet();
+    return;
+  }
+  if (e.target.closest("[data-bet-save]")) {
+    const d = readBetCard(card); const id = d.id; delete d.id;
+    const msg = card.querySelector("[data-bet-msg]");
+    let error;
+    if (id) ({ error } = await sb.from("beteiligungen").update(d).eq("id", id));
+    else ({ error } = await sb.from("beteiligungen").insert([d]));
+    if (error) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; return; }
+    msg.textContent = "Gespeichert."; msg.style.color = "var(--green)";
+    loadBet();
+    return;
+  }
+  if (e.target.closest("[data-bet-toggle]")) card.classList.toggle("collapsed");
+});
+document.getElementById("bet-add").addEventListener("click", async () => {
+  const { error } = await sb.from("beteiligungen").insert([{ name: "Neue Beteiligung", dividende_netto: false, zins_modus: "ausschuettend" }]);
+  if (error) { alert("Fehler beim Anlegen: " + error.message); return; }
+  loadBet();
+});
+
+// ======================================================================
+//  Pensionsfonds
+// ======================================================================
+let pensRows = [];
+let pensStand = [];
+const STEUER_MAX_PENSION = 5164.57;
+
+function pensCurrentWert(pensionId) {
+  const snaps = pensStand.filter((s) => s.pension_id === pensionId);
+  if (snaps.length === 0) return 0;
+  snaps.sort((a, b) => (a.datum > b.datum ? 1 : a.datum < b.datum ? -1 : 0));
+  return Number(snaps[snaps.length - 1].wert) || 0;
+}
+function pensHistory(pensionId) {
+  return pensStand.filter((s) => s.pension_id === pensionId).slice().sort((a, b) => (a.datum < b.datum ? -1 : 1));
+}
+
+function pensKPIs(d, currentWert) {
+  const n = (v) => Number(v) || 0;
+  const jahr = new Date().getFullYear();
+  const rentenjahr = n(d.rentenjahr);
+  const nJahre = Math.max(0, rentenjahr - jahr);
+  const beitragM = n(d.eigenbeitrag) + n(d.agbeitrag);
+  const rJahr = n(d.rendite) / 100;
+  const rMonat = Math.pow(1 + rJahr, 1 / 12) - 1;
+  const monate = nJahre * 12;
+  const wert = n(currentWert);
+  let prognose;
+  if (rentenjahr > 0 && rentenjahr <= jahr) prognose = wert;
+  else {
+    const grow = wert * Math.pow(1 + rJahr, nJahre);
+    const contrib = Math.abs(rMonat) < 1e-9 ? beitragM * monate : beitragM * ((Math.pow(1 + rMonat, monate) - 1) / rMonat);
+    prognose = grow + contrib;
+  }
+  const absetzbar = d.absetzbar ? Math.min(beitragM * 12, STEUER_MAX_PENSION) : null;
+  return { nJahre, beitragM, prognose, absetzbar, vergangenheit: rentenjahr > 0 && rentenjahr <= jahr, rentenjahr };
+}
+
+async function loadPens() {
+  const [pf, ps] = await Promise.all([
+    sb.from("pensionsfonds").select("*").order("created_at", { ascending: true }),
+    sb.from("pension_stand").select("*").order("datum", { ascending: true }),
+  ]);
+  if (pf.error) { console.error(pf.error); return; }
+  pensRows = pf.data || [];
+  pensStand = ps.error ? [] : (ps.data || []);
+  renderPens();
+  if (typeof renderDashboard === "function") renderDashboard();
+}
+
+function pensFieldsHTML(d) {
+  const v = (f) => fmtNum(d[f]);
+  const ft = d.fondstyp || "FPA";
+  const opt = (val, lab) => `<option value="${val}" ${ft === val ? "selected" : ""}>${lab}</option>`;
+  return `
+    <div class="immo-section">
+      <h4>Stammdaten</h4>
+      <div class="immo-grid">
+        <div><label>Fondsname</label><input type="text" data-f="name" value="${esc(d.name || "")}" /></div>
+        <div><label>Fondstyp</label><select data-f="fondstyp">${opt("FPA", "FPA – Fondo Pensione Aperto")}${opt("FPN", "FPN – Fondo Pensione Negoziale")}${opt("PIP", "PIP – Piano Individuale")}${opt("TFR", "TFR-Zuweisung")}${opt("Sonstiges", "Sonstiges")}</select></div>
+        <div><label>Geplantes Rentenjahr</label><input type="text" inputmode="numeric" data-f="rentenjahr" value="${d.rentenjahr || ""}" /><div style="font-size:12px;color:var(--muted);margin-top:4px" data-k="jahre">–</div></div>
+        <div><label>Bindung</label><select data-f="bindung">${bindOptions(d.bindung)}</select></div>
+      </div>
+    </div>
+    <div class="immo-section">
+      <h4>Beiträge &amp; Rendite</h4>
+      <div class="immo-grid">
+        <div><label>Eigenbeitrag/Monat (€)</label><input type="text" inputmode="decimal" data-f="eigenbeitrag" value="${v("eigenbeitrag")}" /></div>
+        <div><label>Arbeitgeberbeitrag/Mon. (€)</label><input type="text" inputmode="decimal" data-f="agbeitrag" value="${v("agbeitrag")}" /></div>
+        <div><label>Erwartete Rendite p.a. (%)</label><input type="text" inputmode="decimal" data-f="rendite" value="${v("rendite")}" /></div>
+        <div><label>Steuerlich absetzbar</label><select data-f="absetzbar"><option value="ja" ${d.absetzbar !== false ? "selected" : ""}>Ja (max. 5.164 €/Jahr)</option><option value="nein" ${d.absetzbar === false ? "selected" : ""}>Nein</option></select></div>
+      </div>
+    </div>
+    <div class="immo-section">
+      <h4>Wertentwicklung</h4>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Aktueller Wert (letzter Stand): <b data-k="curwert" style="color:var(--text)">–</b></div>
+      <div class="toolbar" style="margin-bottom:10px">
+        <input type="date" data-pens-stand-datum style="max-width:170px" />
+        <input type="text" inputmode="decimal" data-pens-stand-wert placeholder="Wert (€)" style="max-width:160px" />
+        <button class="secondary" data-pens-stand-add>Stand erfassen</button>
+      </div>
+      <div data-pens-chart class="chart-wrap"></div>
+      <div style="overflow-x:auto;margin-top:10px">
+        <table>
+          <thead><tr><th>Datum</th><th style="text-align:right">Wert</th><th></th></tr></thead>
+          <tbody data-pens-stand-body></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="immo-section">
+      <h4>Prognose</h4>
+      <div class="kpi-grid">
+        <div class="kpibox"><div class="kpi-k" data-k="prog-label">Prognosewert</div><div class="kpi-v" data-k="prognose">–</div></div>
+        <div class="kpibox"><div class="kpi-k">Gesamt-Beitrag/Monat</div><div class="kpi-v" data-k="beitrag">–</div></div>
+        <div class="kpibox"><div class="kpi-k">Absetzbarer Betrag/Jahr</div><div class="kpi-v" data-k="absetzbar">–</div></div>
+      </div>
+      <div data-k="warn" style="color:var(--warning);font-size:13px;margin-top:8px"></div>
+    </div>
+    <div class="immo-actions">
+      <button data-pens-save>Speichern</button>
+      <span data-pens-msg style="font-size:13px"></span>
+    </div>`;
+}
+
+function pensCardHTML(d) {
+  const cur = pensCurrentWert(d.id);
+  const k = pensKPIs(d, cur);
+  return `<div class="immo-card collapsed" data-id="${d.id}">
+    <div class="immo-head" data-pens-toggle>
+      <span class="chev">▾</span>
+      <div class="titlewrap">
+        <div class="immo-title">${esc(d.name || "Neuer Pensionsfonds")}</div>
+        <div class="immo-sub">${esc(d.fondstyp || "FPA")} | Aktuell: ${euro(cur)} | Prognose ${d.rentenjahr || "–"}: ${euro(k.prognose)}</div>
+      </div>
+      <button class="iconbtn" data-pens-del title="Löschen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+    </div>
+    <div class="immo-body">${pensFieldsHTML(d)}</div>
+  </div>`;
+}
+
+function readPensCard(card) {
+  const g = (f) => { const el = card.querySelector(`[data-f="${f}"]`); return el ? el.value : ""; };
+  return {
+    id: card.getAttribute("data-id") || null,
+    name: g("name") || null,
+    fondstyp: g("fondstyp") || "FPA",
+    rentenjahr: g("rentenjahr") ? (parseInt(String(g("rentenjahr")).replace(/\D/g, "")) || null) : null,
+    eigenbeitrag: numDE(g("eigenbeitrag")), agbeitrag: numDE(g("agbeitrag")),
+    rendite: numDE(g("rendite")), absetzbar: g("absetzbar") !== "nein",
+    bindung: g("bindung") || null,
+  };
+}
+
+function recomputePensCard(card) {
+  const d = readPensCard(card);
+  const cur = pensCurrentWert(d.id);
+  const k = pensKPIs(d, cur);
+  const set = (key, val) => { const el = card.querySelector(`[data-k="${key}"]`); if (el) el.textContent = val; };
+  set("jahre", k.vergangenheit ? "Rentenjahr liegt in der Vergangenheit" : (d.rentenjahr ? k.nJahre + " Jahre bis Rente" : ""));
+  set("prog-label", "Prognosewert" + (d.rentenjahr ? " " + d.rentenjahr : ""));
+  set("prognose", euro(k.prognose));
+  set("beitrag", euro(k.beitragM));
+  set("absetzbar", k.absetzbar == null ? "–" : euro(k.absetzbar));
+  set("warn", k.vergangenheit ? "Hinweis: Rentenjahr liegt in der Vergangenheit – Prognose = aktueller Wert." : "");
+  set("curwert", euro(cur));
+  // Wert-Historie
+  const hist = pensHistory(d.id);
+  const body = card.querySelector("[data-pens-stand-body]");
+  if (body) body.innerHTML = [...hist].reverse().map((s) => `<tr><td>${s.datum ? new Date(s.datum).toLocaleDateString("de-DE") : ""}</td><td class="num">${euro(Number(s.wert) || 0)}</td><td class="num"><button class="danger" data-pens-stand-del="${s.id}">Löschen</button></td></tr>`).join("") || `<tr><td colspan="3" class="empty">Noch keine Stände erfasst.</td></tr>`;
+  const chartEl = card.querySelector("[data-pens-chart]");
+  if (chartEl) drawAreaChart(chartEl, hist.map((s) => ({ m: String(s.datum).slice(0, 7), v: Number(s.wert) || 0 })));
+  const sub = card.querySelector(".immo-sub");
+  if (sub) sub.textContent = `${d.fondstyp || "FPA"} | Aktuell: ${euro(cur)} | Prognose ${d.rentenjahr || "–"}: ${euro(k.prognose)}`;
+  const title = card.querySelector(".immo-title");
+  if (title) title.textContent = d.name || "Neuer Pensionsfonds";
+}
+
+function renderPensSummary() {
+  let wert = 0, beitrag = 0, absetz = 0;
+  pensRows.forEach((d) => { const cur = pensCurrentWert(d.id); const k = pensKPIs(d, cur); wert += cur; beitrag += k.beitragM; absetz += (k.absetzbar || 0); });
+  document.getElementById("pens-sum-wert").textContent = euro(wert);
+  document.getElementById("pens-sum-beitrag").textContent = euro(beitrag);
+  document.getElementById("pens-sum-absetz").textContent = euro(absetz);
+}
+
+function renderPens() {
+  const list = document.getElementById("pens-list");
+  if (!list) return;
+  list.innerHTML = pensRows.map(pensCardHTML).join("");
+  document.getElementById("pens-empty").classList.toggle("hidden", pensRows.length > 0);
+  list.querySelectorAll(".immo-card").forEach((card) => recomputePensCard(card));
+  const t = new Date();
+  const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  list.querySelectorAll("[data-pens-stand-datum]").forEach((el) => { el.value = iso; });
+  renderPensSummary();
+}
+
+const pensListEl = document.getElementById("pens-list");
+pensListEl.addEventListener("input", (e) => { const c = e.target.closest(".immo-card"); if (c) { recomputePensCard(c); renderPensSummary(); } });
+pensListEl.addEventListener("change", (e) => { const c = e.target.closest(".immo-card"); if (c) { recomputePensCard(c); renderPensSummary(); } });
+pensListEl.addEventListener("click", async (e) => {
+  const card = e.target.closest(".immo-card"); if (!card) return;
+  if (e.target.closest("[data-pens-del]")) {
+    e.stopPropagation();
+    if (!confirm("Diesen Pensionsfonds wirklich löschen?")) return;
+    const { error } = await sb.from("pensionsfonds").delete().eq("id", card.getAttribute("data-id"));
+    if (error) alert("Fehler: " + error.message); else loadPens();
+    return;
+  }
+  if (e.target.closest("[data-pens-stand-add]")) {
+    const datum = card.querySelector("[data-pens-stand-datum]").value;
+    const wert = numDE(card.querySelector("[data-pens-stand-wert]").value);
+    if (!datum || wert == null) { alert("Bitte Datum und Wert eingeben."); return; }
+    const { error } = await sb.from("pension_stand").insert([{ pension_id: card.getAttribute("data-id"), datum, wert }]);
+    if (error) { alert("Fehler: " + error.message); return; }
+    loadPens();
+    return;
+  }
+  const standDel = e.target.closest("[data-pens-stand-del]");
+  if (standDel) {
+    const { error } = await sb.from("pension_stand").delete().eq("id", standDel.getAttribute("data-pens-stand-del"));
+    if (error) alert("Fehler: " + error.message); else loadPens();
+    return;
+  }
+  if (e.target.closest("[data-pens-save]")) {
+    const d = readPensCard(card); const id = d.id; delete d.id;
+    const msg = card.querySelector("[data-pens-msg]");
+    let error;
+    if (id) ({ error } = await sb.from("pensionsfonds").update(d).eq("id", id));
+    else ({ error } = await sb.from("pensionsfonds").insert([d]));
+    if (error) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; return; }
+    msg.textContent = "Gespeichert."; msg.style.color = "var(--green)";
+    loadPens();
+    return;
+  }
+  if (e.target.closest("[data-pens-toggle]")) card.classList.toggle("collapsed");
+});
+document.getElementById("pens-add").addEventListener("click", async () => {
+  const { error } = await sb.from("pensionsfonds").insert([{ name: "Neuer Pensionsfonds", fondstyp: "FPA", absetzbar: true, rentenjahr: new Date().getFullYear() + 25 }]);
+  if (error) { alert("Fehler beim Anlegen: " + error.message); return; }
+  loadPens();
+});
+
+// ======================================================================
+//  CSV-Vorlage herunterladen
+// ======================================================================
+document.getElementById("csv-template-btn").addEventListener("click", () => {
+  const csv = "﻿" + [
+    "Buchungsdatum;Beschreibung;Soll Euro;Haben Euro;Kategorie;Bank",
+    "01.01.26;Beispiel Ausgabe;-50,00 €;0;Lebensmittel;Volksbank",
+    "01.01.26;Beispiel Einnahme;0;2500,00 €;Gehalt;Sparkasse",
+  ].join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Transaktionen-Vorlage.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 });
 
 // ======================================================================
@@ -406,6 +2902,9 @@ document.getElementById("csv-import-btn").addEventListener("click", () => {
         };
       }).filter((r) => r.beschreibung || r.buchungsdatum || r.soll != null || r.haben != null);
 
+      if (activeTxBank) rows.forEach((r) => { r.bank = activeTxBank; });  // Import gilt für die gewählte Bank
+      if (document.getElementById("csv-kk").checked) rows.forEach((r) => { r.kreditkarte = true; });
+
       if (rows.length === 0) { showMsg(msg, "Keine gültigen Zeilen gefunden. Prüfe die Spaltenüberschriften.", "error"); return; }
 
       showMsg(msg, `Importiere ${rows.length} Zeilen…`, "ok");
@@ -421,4 +2920,3 @@ document.getElementById("csv-import-btn").addEventListener("click", () => {
 </script>
 </body>
 </html>
- 
