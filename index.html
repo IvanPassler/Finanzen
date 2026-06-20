@@ -71,17 +71,35 @@
   .sidebar {
     width: 220px; flex-shrink: 0; background: var(--panel);
     border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 18px 14px;
+    overflow: hidden; white-space: nowrap; transition: width .2s ease, padding .2s ease;
   }
+  .app-shell.sidebar-collapsed .sidebar { width: 0; padding-left: 0; padding-right: 0; border-right: none; }
+  .nav-toggle { background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; color: var(--text); display: flex; align-items: center; cursor: pointer; }
+  .nav-toggle:hover { background: var(--panel2); }
   .sidebar .brand { font-weight: 700; font-size: 18px; padding: 6px 10px 18px; }
+  .section-switch { display: flex; gap: 4px; background: var(--panel2); border-radius: 9px; padding: 4px; margin-bottom: 16px; }
+  .section-switch button { flex: 1; background: transparent; color: var(--muted); font-weight: 600; font-size: 13px; padding: 7px; border-radius: 7px; cursor: pointer; }
+  .section-switch button.active { background: var(--panel); color: var(--text); box-shadow: var(--shadow-card); }
   .nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .nav-group { display: flex; flex-direction: column; gap: 4px; }
+  .nav-group.hidden { display: none; }
+  .rail { width: 76px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 14px 6px; gap: 6px; }
+  .rail-item { width: 64px; padding: 9px 2px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 5px; color: var(--muted); cursor: pointer; border: none; background: transparent; font-size: 10px; font-weight: 600; text-align: center; line-height: 1.1; }
+  .rail-item:hover { background: var(--panel2); color: var(--text); }
+  .rail-item.active { background: var(--primary-subtle); color: var(--accent); }
+  .rail-item svg { width: 22px; height: 22px; }
   .nav-item {
-    display: block; padding: 10px 12px; border-radius: 8px; color: var(--muted);
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px 12px; border-radius: 8px; color: var(--muted);
     text-decoration: none; font-weight: 500; font-size: 14px;
   }
   .nav-item:hover { background: var(--panel2); color: var(--text); }
   .nav-item.active { background: var(--accent); color: #fff; }
+  .nav-chev { font-size: 11px; color: var(--muted); transition: transform .15s; padding: 0 2px; }
+  .nav-item.active .nav-chev { color: #fff; }
+  .nav-chev.collapsed { transform: rotate(-90deg); }
   .subnav { display: flex; flex-direction: column; margin: 2px 0 2px 14px; gap: 2px; border-left: 1px solid var(--border); padding-left: 6px; }
-  .subnav:empty { display: none; }
+  .subnav:empty, .subnav.collapsed { display: none; }
   .subnav-item { display: block; padding: 6px 10px; border-radius: 7px; color: var(--muted); text-decoration: none; font-size: 13px; }
   .subnav-item:hover { background: var(--panel2); color: var(--text); }
   .subnav-item.active { background: var(--panel2); color: var(--text); font-weight: 600; }
@@ -91,6 +109,7 @@
   .page-title { font-weight: 700; font-size: 18px; }
   @media (max-width: 760px) {
     .app-shell { flex-direction: column; }
+    .rail { width: auto; flex-direction: row; justify-content: center; border-right: none; border-bottom: 1px solid var(--border); }
     .sidebar { width: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
     .sidebar .brand { padding: 6px 10px; }
     .nav { flex-direction: row; flex: 1; }
@@ -170,6 +189,12 @@
 
   /* ---- Dashboard-Cockpit ---- */
   .cards-4 { grid-template-columns: repeat(4, 1fr); }
+  .dash-section { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; margin: 26px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .hero { background: linear-gradient(135deg, var(--primary-subtle), var(--panel) 70%); }
+  .hero-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .hero-grid .k { font-size: 13px; color: var(--muted); }
+  .hero-v { font-size: 28px; font-weight: 800; margin-top: 6px; line-height: 1.1; }
+  @media (max-width: 760px) { .hero-grid { grid-template-columns: 1fr 1fr; } }
   .hbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
   .hbar .hbar-label { width: 140px; flex-shrink: 0; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hbar .hbar-track { flex: 1; height: 10px; background: var(--panel2); border-radius: 5px; overflow: hidden; }
@@ -233,19 +258,49 @@
 <!-- ============================ APP ============================ -->
 <div id="app-view" class="hidden">
   <div class="app-shell">
+    <div class="rail">
+      <button class="rail-item active" data-section="finanzen" title="Finanzen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Finanzen
+      </button>
+      <button class="rail-item" data-section="steuern" title="Steuern">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>Steuern
+      </button>
+      <button class="rail-item" data-section="versicherung" title="Versicherungen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Versicherung
+      </button>
+      <button class="rail-item" data-section="simulator" title="Investment-Simulator">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Simulator
+      </button>
+    </div>
     <aside class="sidebar">
-      <div class="brand">Finanzen</div>
+      <div class="brand" id="section-title">Finanzen</div>
       <nav class="nav">
-        <a href="#" class="nav-item active" data-page="dashboard">Dashboard</a>
-        <a href="#" class="nav-item" data-page="banken">Banken</a>
-        <a href="#" class="nav-item" data-page="transaktionen">Transaktionen</a>
-        <div id="tx-submenu" class="subnav"></div>
-        <a href="#" class="nav-item" data-page="portfolio">ETF-Portfolio</a>
-        <div id="pf-submenu" class="subnav"></div>
-        <a href="#" class="nav-item" data-page="immobilien">Immobilien</a>
-        <div id="immo-submenu" class="subnav"></div>
-        <a href="#" class="nav-item" data-page="beteiligungen">Beteiligungen</a>
-        <a href="#" class="nav-item" data-page="pensionsfonds">Pensionsfonds</a>
+        <div class="nav-group" data-section="finanzen">
+          <a href="#" class="nav-item active" data-page="dashboard">Dashboard</a>
+          <a href="#" class="nav-item" data-page="banken">Banken</a>
+          <a href="#" class="nav-item" data-page="transaktionen">Transaktionen<span class="nav-chev" data-sub="tx-submenu">▾</span></a>
+          <div id="tx-submenu" class="subnav"></div>
+          <a href="#" class="nav-item" data-page="portfolio">ETF-Portfolio<span class="nav-chev" data-sub="pf-submenu">▾</span></a>
+          <div id="pf-submenu" class="subnav"></div>
+          <a href="#" class="nav-item" data-page="immobilien">Immobilien<span class="nav-chev" data-sub="immo-submenu">▾</span></a>
+          <div id="immo-submenu" class="subnav"></div>
+          <a href="#" class="nav-item" data-page="beteiligungen">Beteiligungen</a>
+          <a href="#" class="nav-item" data-page="pensionsfonds">Pensionsfonds</a>
+        </div>
+        <div class="nav-group hidden" data-section="steuern">
+          <a href="#" class="nav-item" data-page="steuer-uebersicht">Übersicht</a>
+          <a href="#" class="nav-item" data-page="steuer-einkommen">Einkommensteuer</a>
+          <a href="#" class="nav-item" data-page="steuer-miete">Mieteinnahmen</a>
+          <a href="#" class="nav-item" data-page="steuer-kapital">Kapitalerträge</a>
+          <a href="#" class="nav-item" data-page="steuer-absetzbar">Absetzbares</a>
+          <a href="#" class="nav-item" data-page="steuer-einstellungen">Einstellungen</a>
+        </div>
+        <div class="nav-group hidden" data-section="versicherung">
+          <a href="#" class="nav-item" data-page="versicherung-uebersicht">Übersicht</a>
+        </div>
+        <div class="nav-group hidden" data-section="simulator">
+          <a href="#" class="nav-item" data-page="simulator-uebersicht">Übersicht</a>
+        </div>
       </nav>
       <div class="sidebar-footer">
         <span class="user" id="user-email"></span>
@@ -255,7 +310,12 @@
 
     <div class="content">
       <header class="topbar">
-        <div class="page-title" id="page-title">Dashboard</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="nav-toggle" id="nav-toggle" title="Menü ein-/ausklappen" aria-label="Menü ein-/ausklappen">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="page-title" id="page-title">Dashboard</div>
+        </div>
         <div class="topbar-right">
           <div class="warnbox" id="pf-warnbox" style="display:none">
             <button class="warnbtn" id="pf-warnbtn" title="Hinweise zu möglicherweise fehlenden Werten">
@@ -289,28 +349,40 @@
       </div>
     </div>
 
-    <!-- KPI-Kacheln (nur dein Anteil) -->
-    <div class="cards cards-4">
-      <div class="stat"><div class="k">Gesamtvermögen</div><div class="v" id="kpi-networth">–</div></div>
-      <div class="stat"><div class="k">Liquide Mittel</div><div class="v" id="kpi-liquid">–</div></div>
-      <div class="stat"><div class="k">Portfolio-Wert</div><div class="v" id="kpi-portfolio">–</div><div class="k" id="kpi-portfolio-gain" style="margin-top:2px"></div></div>
-      <div class="stat"><div class="k">Netto-Cashflow (Zeitraum)</div><div class="v" id="kpi-cashflow">–</div></div>
+    <div class="panel hero">
+      <div class="hero-grid">
+        <div><div class="k">Nettovermögen (nach Steuer)</div><div class="hero-v" id="hero-networth">–</div></div>
+        <div><div class="k">Liquide Mittel (aktuell)</div><div class="hero-v" id="hero-liquid">–</div></div>
+        <div><div class="k">Finanzielle Freiheit</div><div class="hero-v" id="hero-freiheit">–</div></div>
+        <div><div class="k">Netto-Cashflow (Zeitraum)</div><div class="hero-v" id="hero-cashflow">–</div></div>
+      </div>
     </div>
 
+    <h3 class="dash-section">Einnahmen &amp; Ausgaben (Zeitraum)</h3>
     <div class="cards cards-4">
+      <div class="stat"><div class="k">Einnahmen (Zeitraum)</div><div class="v pos" id="kpi-ein">–</div></div>
       <div class="stat"><div class="k">Ausgaben (Zeitraum)</div><div class="v neg" id="kpi-ausgaben">–</div></div>
+      <div class="stat"><div class="k">Saldo (Netto-Cashflow)</div><div class="v" id="kpi-cashflow">–</div></div>
       <div class="stat"><div class="k">Ausgaben (letzter Monat)</div><div class="v neg" id="kpi-ausgaben-lm">–</div></div>
-      <div class="stat"><div class="k">Passives Einkommen / Monat</div><div class="v pos" id="kpi-passiv">–</div></div>
-      <div class="stat"><div class="k">Passives Einkommen / Jahr</div><div class="v pos" id="kpi-passiv-jahr">–</div></div>
     </div>
 
-    <div class="cards" style="grid-template-columns:repeat(2,1fr)">
-      <div class="stat"><div class="k">Latente Steuer (26 % auf ETF- &amp; Beteiligungs-Gewinne)</div><div class="v neg" id="kpi-lat-steuer">–</div></div>
-      <div class="stat"><div class="k">Nettovermögen nach latenter Steuer</div><div class="v" id="kpi-networth-net">–</div></div>
-    </div>
-
+    <h3 class="dash-section">Einkommensübersicht</h3>
     <div class="panel">
-      <h2>Finanzielle Freiheit</h2>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Aktives Einkommen (Arbeit, letzte 12 Monate) und passives Einkommen pro Jahr (ETF, Immobilien, Beteiligungen).</p>
+      <div id="dash-income"></div>
+      <div class="cards" style="grid-template-columns:repeat(2,1fr);margin-top:16px">
+        <div class="stat"><div class="k">Passives Einkommen / Monat</div><div class="v pos" id="kpi-passiv">–</div></div>
+        <div class="stat"><div class="k">Passives Einkommen / Jahr</div><div class="v pos" id="kpi-passiv-jahr">–</div></div>
+      </div>
+    </div>
+
+    <h3 class="dash-section">Ausgaben nach Kategorie</h3>
+    <div class="panel">
+      <div id="dash-cat"></div>
+    </div>
+
+    <h3 class="dash-section">Finanzielle Freiheit</h3>
+    <div class="panel">
       <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Wie lange dein verfügbares Vermögen (nach latenter Steuer, ohne langfristig gebundenes Vermögen) die Lücke zwischen durchschnittlichen Ausgaben und passivem Einkommen deckt.</p>
       <div class="cards cards-4" style="margin-bottom:16px">
         <div class="stat"><div class="k">Ø Ausgaben/Monat (letztes Jahr)</div><div class="v neg" id="ff-ausgaben">–</div></div>
@@ -321,35 +393,172 @@
       <div style="font-size:15px">Finanzielle Freiheit: <b id="ff-result" style="font-size:20px">–</b></div>
     </div>
 
+    <h3 class="dash-section">Cashflow je Monat</h3>
+    <div class="panel">
+      <div id="dash-cashflow-chart" class="chart-wrap"></div>
+    </div>
+
+    <h3 class="dash-section">Investitionen pro Monat (ETF)</h3>
+    <div class="panel">
+      <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Netto-Zu-/Verkäufe im ETF-Portfolio je Monat (Veränderung des investierten Kapitals).</p>
+      <div id="dash-invest" class="chart-wrap"></div>
+    </div>
+
+    <h3 class="dash-section">Vermögenssituation</h3>
+    <div class="cards cards-4">
+      <div class="stat"><div class="k">Gesamtvermögen</div><div class="v" id="kpi-networth">–</div></div>
+      <div class="stat"><div class="k">Liquide Mittel</div><div class="v" id="kpi-liquid">–</div></div>
+      <div class="stat"><div class="k">Portfolio-Wert</div><div class="v" id="kpi-portfolio">–</div><div class="k" id="kpi-portfolio-gain" style="margin-top:2px"></div></div>
+      <div class="stat"><div class="k">Latente Steuer (26 % auf ETF- &amp; Beteiligungs-Gewinne)</div><div class="v neg" id="kpi-lat-steuer">–</div></div>
+    </div>
+    <div class="cards" style="grid-template-columns:1fr">
+      <div class="stat"><div class="k">Nettovermögen nach latenter Steuer</div><div class="v" id="kpi-networth-net" style="font-size:26px">–</div></div>
+    </div>
     <div class="panel">
       <h2>Vermögensentwicklung</h2>
       <div id="dash-networth-chart" class="chart-wrap"></div>
     </div>
-
     <div class="panel">
-      <h2>Cashflow je Monat</h2>
-      <div id="dash-cashflow-chart" class="chart-wrap"></div>
+      <h2>Vermögensaufteilung</h2>
+      <div id="dash-alloc"></div>
     </div>
 
-    <div class="breakdown">
-      <div class="panel">
-        <h2>Ausgaben nach Kategorie</h2>
-        <div id="dash-cat"></div>
-      </div>
-      <div class="panel">
-        <h2>Vermögensaufteilung</h2>
-        <div id="dash-alloc"></div>
-      </div>
+    <h3 class="dash-section">Schuldenentwicklung</h3>
+    <div class="cards" style="grid-template-columns:repeat(2,1fr)">
+      <div class="stat"><div class="k">Gesamtschulden (aktuell)</div><div class="v neg" id="kpi-schulden">–</div></div>
+      <div class="stat"><div class="k">Veränderung (Zeitraum)</div><div class="v" id="kpi-schulden-delta">–</div></div>
+    </div>
+    <div class="panel">
+      <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Summe der Restschulden aller Immobilien über die Zeit (anteilig gewichtet). Werte aus dem „Schuldenverlauf" je Immobilie.</p>
+      <div id="dash-debt-chart" class="chart-wrap"></div>
     </div>
 
+    <h3 class="dash-section">Kapitalbindung (gesamt)</h3>
     <div class="panel">
-      <h2>Kapitalbindung (gesamt)</h2>
       <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Über alle Anlageklassen (ETF-Portfolio, Immobilien-EK, Beteiligungen, Pensionsfonds), mit deinem Anteil gewichtet.</p>
       <table>
         <thead><tr><th>Horizont</th><th style="text-align:right">Wert</th><th style="text-align:right">Anteil</th><th></th></tr></thead>
         <tbody id="dash-bindung-body"></tbody>
       </table>
     </div>
+    </section>
+
+    <!-- ===== STEUERN ===== -->
+    <section id="page-steuer-uebersicht" class="hidden">
+      <div class="panel" style="background:var(--warning-subtle);border-color:#E0A800">
+        <p style="margin:0;font-size:13px;color:#8a6d00"><b>Hinweis:</b> Alle Werte sind vereinfachte Schätzungen zur Orientierung – keine Steuerberatung.</p>
+      </div>
+      <div class="cards cards-4">
+        <div class="stat"><div class="k">Geschätzte Jahressteuer (laufend)</div><div class="v neg" id="st-total">–</div></div>
+        <div class="stat"><div class="k">Einkommensteuer (IRPEF)</div><div class="v neg" id="st-einkommen">–</div></div>
+        <div class="stat"><div class="k">Mieteinnahmen-Steuer</div><div class="v neg" id="st-miete">–</div></div>
+        <div class="stat"><div class="k">IMU / Jahr</div><div class="v neg" id="st-imu">–</div></div>
+      </div>
+      <div class="cards cards-4">
+        <div class="stat"><div class="k">Kapitalertragsteuer (26 %, laufend)</div><div class="v neg" id="st-kapital">–</div></div>
+        <div class="stat"><div class="k">Latente Steuer (erst bei Verkauf)</div><div class="v neg" id="st-latent">–</div></div>
+        <div class="stat"><div class="k">Absetzbar – Steuervorteil</div><div class="v pos" id="st-vorteil">–</div></div>
+        <div class="stat"><div class="k">Differenz zu Vorauszahlung</div><div class="v" id="st-diff">–</div></div>
+      </div>
+      <div class="panel">
+        <h2>Steuerlast nach Art (laufend)</h2>
+        <div id="st-breakdown"></div>
+      </div>
+    </section>
+
+    <section id="page-steuer-einkommen" class="hidden">
+      <div class="panel">
+        <h2>Einkommensteuer (IRPEF)</h2>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Vereinfachte Schätzung auf Basis deines Arbeitseinkommens der letzten 12 Monate (Transaktions-Einnahmen ohne Immobilien-Zuordnung), ohne Abzüge/Detrazioni. Stufen 2026: 23 % bis 28.000 €, 33 % bis 50.000 €, 43 % darüber.</p>
+        <div class="cards cards-4" style="margin-bottom:16px">
+          <div class="stat"><div class="k">Arbeitseinkommen / Jahr</div><div class="v" id="ste-income">–</div></div>
+          <div class="stat"><div class="k">IRPEF geschätzt</div><div class="v neg" id="ste-tax">–</div></div>
+          <div class="stat"><div class="k">Effektiver Steuersatz</div><div class="v" id="ste-rate">–</div></div>
+          <div class="stat"><div class="k">Netto (vereinfacht)</div><div class="v pos" id="ste-net">–</div></div>
+        </div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Stufe</th><th style="text-align:right">Betrag</th><th style="text-align:right">Satz</th><th style="text-align:right">Steuer</th></tr></thead>
+          <tbody id="ste-body"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section id="page-steuer-miete" class="hidden">
+      <div class="panel">
+        <h2>Mieteinnahmen-Steuer</h2>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Je Immobilie, anteilig nach deinem Eigentumsanteil. Cedolare Secca 21 % auf die Bruttomiete bzw. IRPEF (Satz je Immobilie).</p>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Immobilie</th><th>Modell</th><th style="text-align:right">Bruttomiete/Jahr</th><th style="text-align:right">Steuer/Jahr</th><th style="text-align:right">IMU/Jahr</th></tr></thead>
+          <tbody id="stm-body"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section id="page-steuer-kapital" class="hidden">
+      <div class="panel">
+        <h2>Kapitalerträge (26 %, laufend)</h2>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Laufende Kapitalertragsteuer auf Zinsen und Dividenden aus Beteiligungen.</p>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Beteiligung</th><th style="text-align:right">Zinsen brutto/Jahr</th><th style="text-align:right">Dividende brutto/Jahr</th><th style="text-align:right">Steuer 26 %</th></tr></thead>
+          <tbody id="stk-body"></tbody>
+        </table></div>
+      </div>
+      <div class="panel">
+        <h2>Latente Steuer (erst bei Verkauf)</h2>
+        <div class="cards" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat"><div class="k">ETF – Buchgewinn</div><div class="v pos" id="stk-etf-gain">–</div></div>
+          <div class="stat"><div class="k">Beteiligungen – Buchgewinn</div><div class="v pos" id="stk-bet-gain">–</div></div>
+          <div class="stat"><div class="k">Latente Steuer 26 %</div><div class="v neg" id="stk-latent">–</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-steuer-absetzbar" class="hidden">
+      <div class="panel">
+        <h2>Absetzbare Pensionsbeiträge</h2>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Beiträge zu Pensionsfonds sind bis 5.164,57 €/Jahr steuerlich absetzbar (Summe über alle Fonds). Steuervorteil = absetzbarer Betrag × Grenzsteuersatz.</p>
+        <div class="cards cards-4" style="margin-bottom:16px">
+          <div class="stat"><div class="k">Beiträge / Jahr (gesamt)</div><div class="v" id="sta-beitrag">–</div></div>
+          <div class="stat"><div class="k">Absetzbar (max 5.164,57)</div><div class="v pos" id="sta-absetzbar">–</div></div>
+          <div class="stat"><div class="k">Grenzsteuersatz</div><div class="v" id="sta-satz">–</div></div>
+          <div class="stat"><div class="k">Geschätzter Steuervorteil</div><div class="v pos" id="sta-vorteil">–</div></div>
+        </div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Pensionsfonds</th><th style="text-align:right">Beitrag/Jahr</th></tr></thead>
+          <tbody id="sta-body"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section id="page-steuer-einstellungen" class="hidden">
+      <div class="panel">
+        <h2>Steuer-Einstellungen</h2>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Diese Werte verbessern die Schätzung (IRPEF-Posten, Steuervorteil) und ermöglichen den Soll/Ist-Vergleich.</p>
+        <div class="row">
+          <div><label>Persönlicher Grenzsteuersatz (%)</label><input type="text" inputmode="decimal" id="set-grenz" placeholder="z. B. 35" /></div>
+          <div><label>Geleistete Vorauszahlungen / Jahr (€)</label><input type="text" inputmode="decimal" id="set-voraus" /></div>
+        </div>
+        <div class="actions" style="margin-top:14px">
+          <button id="set-save">Speichern</button>
+          <span id="set-msg" style="font-size:13px"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== VERSICHERUNGEN ===== -->
+    <section id="page-versicherung-uebersicht" class="hidden">
+      <div class="panel">
+        <h2>Versicherungen</h2>
+        <p style="color:var(--muted);font-size:14px;margin:0">Dieser Bereich ist vorbereitet. Hier kommen später deine Versicherungen (z. B. Lebens-, Sach-, Haftpflichtversicherung) mit Prämien, Laufzeiten, Deckungssummen und Gesamtübersicht.</p>
+      </div>
+    </section>
+
+    <!-- ===== INVESTMENT-SIMULATOR ===== -->
+    <section id="page-simulator-uebersicht" class="hidden">
+      <div class="panel">
+        <h2>Investment-Simulator</h2>
+        <p style="color:var(--muted);font-size:14px;margin:0">Dieser Bereich ist vorbereitet. Hier kommt später eine Simulation – z. B. Vermögensentwicklung über einen Zeithorizont mit Rendite, Sparrate und Inflation, auf Basis deiner aktuellen Daten.</p>
+      </div>
     </section>
 
     <!-- ===== TRANSAKTIONEN ===== -->
@@ -373,6 +582,7 @@
     <!-- Umbuchung zwischen Konten (nur Übersicht) -->
     <div class="panel" id="tx-umbuchung">
       <h2>Umbuchung zwischen Konten</h2>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Nur für <b>manuell</b> erfasste Umbuchungen. Wenn beide Seiten bereits per CSV importiert sind, markiere stattdessen die vorhandenen Buchungen unten in der Tabelle direkt als Umbuchung (Schalter in der Zeile) – sonst werden sie doppelt gezählt.</p>
       <div class="row">
         <div><label>Datum</label><input type="date" id="ub-datum" /></div>
         <div><label>Von Konto</label><select id="ub-von"></select></div>
@@ -397,7 +607,7 @@
       </div>
       <div id="csv-msg"></div>
       <p style="color:var(--muted);font-size:13px;margin:8px 0 0">
-        Erwartete Spalten (Trennzeichen <b>;</b>): Buchungsdatum; Beschreibung; Soll Euro; Haben Euro; Kategorie; Bank
+        Erwartete Spalten (Trennzeichen <b>;</b>): Buchungsdatum; Beschreibung; Soll Euro; Haben Euro; Kategorie; Bank; Immobilie (optional, Name der Immobilie)
       </p>
     </div>
 
@@ -740,6 +950,7 @@ sb.auth.onAuthStateChange((_event, session) => {
     loadImmo();
     loadBet();
     loadPens();
+    loadSteuer();
   } else {
     appView.classList.add("hidden");
     loginView.classList.remove("hidden");
@@ -808,6 +1019,7 @@ function render() {
         <td class="num neg">${r.soll != null ? euro(r.soll) : ""}</td>
         <td class="num pos">${r.haben != null ? euro(r.haben) : ""}</td>
         <td class="num">
+          <button class="link" data-ub="${r.id}" title="Als Umbuchung markieren">${r.umbuchung ? "Umbuchung ✓" : "→ Umbuchung"}</button>
           <button class="link" data-edit="${r.id}">Bearbeiten</button>
           <button class="danger" data-del="${r.id}">Löschen</button>
         </td>`;
@@ -823,6 +1035,7 @@ function render() {
   applyTxMode();
   if (typeof renderDashboard === "function") renderDashboard();
   if (typeof renderImmoTx === "function") renderImmoTx();
+  if (typeof renderGaps === "function") renderGaps();
 }
 
 // Banken-Übersicht auf der Transaktionsseite (Zusammenfassung aller Banken)
@@ -831,6 +1044,7 @@ function renderTxOverview(viewRows) {
   if (!body) return;
   const groups = {};
   viewRows.forEach((r) => {
+    if (r.umbuchung) return;
     const k = (r.bank || "").trim() || "Ohne Bank";
     if (!groups[k]) groups[k] = { ein: 0, aus: 0, n: 0 };
     groups[k].ein += Number(r.haben) || 0;
@@ -922,7 +1136,32 @@ function renderBreakdown(rows) {
 function esc(s) { return (s == null ? "" : String(s)).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
 
 // ---- Navigation (Seitenmenü) ----
-const PAGES = ["dashboard", "transaktionen", "portfolio", "banken", "immobilien", "beteiligungen", "pensionsfonds"];
+const SECTION_PAGES = {
+  finanzen: ["dashboard", "transaktionen", "portfolio", "banken", "immobilien", "beteiligungen", "pensionsfonds"],
+  steuern: ["steuer-uebersicht", "steuer-einkommen", "steuer-miete", "steuer-kapital", "steuer-absetzbar", "steuer-einstellungen"],
+  versicherung: ["versicherung-uebersicht"],
+  simulator: ["simulator-uebersicht"],
+};
+const PAGES = Object.values(SECTION_PAGES).flat();
+let activeSection = "finanzen";
+const SECTION_LABELS = { finanzen: "Finanzen", steuern: "Steuern", versicherung: "Versicherungen", simulator: "Investment-Simulator" };
+function switchSection(section) {
+  activeSection = section;
+  document.querySelectorAll(".nav-group").forEach((g) => g.classList.toggle("hidden", g.getAttribute("data-section") !== section));
+  document.querySelectorAll(".rail-item").forEach((b) => b.classList.toggle("active", b.getAttribute("data-section") === section));
+  const titleEl = document.getElementById("section-title");
+  if (titleEl) titleEl.textContent = SECTION_LABELS[section] || section;
+  const first = SECTION_PAGES[section][0];
+  const navItem = document.querySelector(`.nav-group[data-section="${section}"] .nav-item[data-page="${first}"]`);
+  const label = navItem && navItem.childNodes[0] && navItem.childNodes[0].nodeValue ? navItem.childNodes[0].nodeValue.trim() : section;
+  showPage(first, label);
+  if (first === "transaktionen") { activeTxBank = null; renderTxSubmenu(); render(); }
+  if (first === "portfolio") { activePfBank = null; renderPfSubmenu(); renderPortfolio(); }
+  if (first === "immobilien") { activeImmo = null; renderImmoSubmenu(); renderImmo(); }
+}
+document.querySelectorAll(".rail-item").forEach((b) => {
+  b.addEventListener("click", () => switchSection(b.getAttribute("data-section")));
+});
 function showPage(page, title) {
   document.querySelectorAll(".nav-item").forEach((n) => n.classList.toggle("active", n.getAttribute("data-page") === page));
   PAGES.forEach((p) => document.getElementById("page-" + p).classList.toggle("hidden", p !== page));
@@ -931,13 +1170,29 @@ function showPage(page, title) {
 document.querySelectorAll(".nav-item").forEach((item) => {
   item.addEventListener("click", (e) => {
     e.preventDefault();
+    const chevEl = item.querySelector(".nav-chev");
+    if (chevEl) {
+      const sub = document.getElementById(chevEl.getAttribute("data-sub"));
+      if (sub) sub.classList.toggle("collapsed");
+      chevEl.classList.toggle("collapsed");
+    }
     const page = item.getAttribute("data-page");
-    showPage(page, item.textContent.trim());
+    const label = (item.childNodes[0] && item.childNodes[0].nodeValue ? item.childNodes[0].nodeValue : item.textContent).trim();
+    showPage(page, label);
     if (page === "transaktionen") { activeTxBank = null; renderTxSubmenu(); render(); }
     if (page === "portfolio") { activePfBank = null; renderPfSubmenu(); renderPortfolio(); }
     if (page === "immobilien") { activeImmo = null; renderImmoSubmenu(); renderImmo(); }
   });
 });
+
+// Seitenleiste komplett ein-/ausklappen (Zustand wird gemerkt)
+const appShell = document.querySelector(".app-shell");
+document.getElementById("nav-toggle").addEventListener("click", () => {
+  const collapsed = !appShell.classList.contains("sidebar-collapsed");
+  appShell.classList.toggle("sidebar-collapsed", collapsed);
+  try { localStorage.setItem("sidebarCollapsed", collapsed ? "1" : "0"); } catch (e) {}
+});
+try { if (localStorage.getItem("sidebarCollapsed") === "1") appShell.classList.add("sidebar-collapsed"); } catch (e) {}
 
 // Untermenü pro Bank unter „ETF-Portfolio" (nur Banken mit Portfolio)
 function portfolioBankNames() { return banks.filter((b) => b.hat_portfolio).map((b) => b.name).filter(Boolean); }
@@ -1040,9 +1295,49 @@ document.getElementById("filter-reset").addEventListener("click", () => {
 });
 
 // Klicks in der Tabelle (Bearbeiten / Löschen)
+// Auswahl der Gegenbuchung beim Markieren einer Umbuchung
+function showUbPicker(cell, r) {
+  if (!cell) return;
+  const amt = (Number(r.soll) || 0) + (Number(r.haben) || 0);
+  const candidates = allRows
+    .filter((x) => x.id !== r.id && (x.bank || "") !== (r.bank || "") && !x.umbuchung)
+    .sort((a, b) => Math.abs(((Number(a.soll) || 0) + (Number(a.haben) || 0)) + amt) - Math.abs(((Number(b.soll) || 0) + (Number(b.haben) || 0)) + amt));
+  if (candidates.length === 0) { alert("Keine mögliche Gegenbuchung bei einer anderen Bank gefunden. Erfasse zuerst die Gegenseite (anderes Konto)."); return; }
+  const opts = candidates.map((x) => `<option value="${x.id}">${x.buchungsdatum ? new Date(x.buchungsdatum).toLocaleDateString("de-DE") : ""} · ${esc(x.bank || "")} · ${euro((Number(x.soll) || 0) + (Number(x.haben) || 0))} · ${esc((x.beschreibung || "").slice(0, 30))}</option>`).join("");
+  cell.innerHTML = `<select class="ub-partner" style="max-width:260px;margin-bottom:6px">${opts}</select><br><button class="link" data-ub-link="${r.id}">Verknüpfen</button> <button class="link" data-ub-cancel="1">Abbrechen</button>`;
+}
+
 document.getElementById("tbody").addEventListener("click", async (e) => {
   const delId = e.target.getAttribute("data-del");
   const editId = e.target.getAttribute("data-edit");
+  const ubId = e.target.getAttribute("data-ub");
+  if (ubId) {
+    const r = allRows.find((x) => x.id === ubId);
+    if (!r) return;
+    if (r.umbuchung) {
+      // entkoppeln (beide Seiten)
+      const ups = [sb.from("transactions").update({ umbuchung: false, umbuchung_partner: null }).eq("id", r.id)];
+      if (r.umbuchung_partner) ups.push(sb.from("transactions").update({ umbuchung: false, umbuchung_partner: null }).eq("id", r.umbuchung_partner));
+      await Promise.all(ups);
+      loadData();
+    } else {
+      showUbPicker(e.target.closest("td"), r);
+    }
+    return;
+  }
+  const linkId = e.target.getAttribute("data-ub-link");
+  if (linkId) {
+    const sel = e.target.closest("td").querySelector(".ub-partner");
+    const partnerId = sel && sel.value;
+    if (!partnerId) { alert("Bitte eine Gegenbuchung wählen."); return; }
+    await Promise.all([
+      sb.from("transactions").update({ umbuchung: true, umbuchung_partner: partnerId }).eq("id", linkId),
+      sb.from("transactions").update({ umbuchung: true, umbuchung_partner: linkId }).eq("id", partnerId),
+    ]);
+    loadData();
+    return;
+  }
+  if (e.target.getAttribute("data-ub-cancel") !== null) { render(); return; }
   if (delId) {
     if (!confirm("Diesen Eintrag wirklich löschen?")) return;
     const { error } = await sb.from("transactions").delete().eq("id", delId);
@@ -1221,13 +1516,30 @@ function renderGaps() {
     const missing = allMonths.filter((m) => m > first && m < last && !p.months.has(m));
     if (missing.length) warnings.push({ p, missing });
   });
-  if (warnings.length === 0) { box.style.display = "none"; dd.style.display = "none"; dd.innerHTML = ""; return; }
+  const sections = [];
+  let count = 0;
+  if (warnings.length) {
+    count += warnings.length;
+    const items = warnings.map((w) =>
+      `<li><b>${esc(w.p.bez || w.p.bank || "?")}</b>${w.p.bank ? " (" + esc(w.p.bank) + ")" : ""}: fehlt ${w.missing.map(monthLabel).join(", ")}</li>`
+    ).join("");
+    sections.push(`<h4>Mögliche fehlende Werte</h4><p style="color:var(--muted);margin:6px 0 8px">In diesen Monaten fehlt ein Stand, obwohl davor und danach Werte erfasst wurden:</p><ul style="margin:0;padding-left:18px">${items}</ul>`);
+  }
+  // Umbuchungen ohne (gültige) Gegenbuchung
+  const ubBad = allRows.filter((r) => {
+    if (!r.umbuchung) return false;
+    const partner = r.umbuchung_partner ? allRows.find((x) => x.id === r.umbuchung_partner) : null;
+    return !partner || (partner.bank || "") === (r.bank || "");
+  });
+  if (ubBad.length) {
+    count += ubBad.length;
+    const items2 = ubBad.map((r) => `<li>${r.buchungsdatum ? new Date(r.buchungsdatum).toLocaleDateString("de-DE") : ""} · ${esc(r.bank || "?")} · ${euro((Number(r.soll) || 0) + (Number(r.haben) || 0))}</li>`).join("");
+    sections.push(`<h4 style="margin-top:${warnings.length ? 12 : 0}px">Umbuchungen ohne Gegenbuchung</h4><p style="color:var(--muted);margin:6px 0 8px">Bitte je Umbuchung die Gegenbuchung bei einer anderen Bank verknüpfen (Schalter in der Transaktionszeile).</p><ul style="margin:0;padding-left:18px">${items2}</ul>`);
+  }
+  if (count === 0) { box.style.display = "none"; dd.style.display = "none"; dd.innerHTML = ""; return; }
   box.style.display = "";
-  document.getElementById("pf-warn-count").textContent = warnings.length;
-  const items = warnings.map((w) =>
-    `<li><b>${esc(w.p.bez || w.p.bank || "?")}</b>${w.p.bank ? " (" + esc(w.p.bank) + ")" : ""}: fehlt ${w.missing.map(monthLabel).join(", ")}</li>`
-  ).join("");
-  dd.innerHTML = `<h4>Mögliche fehlende Werte</h4><p style="color:var(--muted);margin:6px 0 8px">In diesen Monaten fehlt ein Stand, obwohl davor und danach Werte erfasst wurden:</p><ul style="margin:0;padding-left:18px">${items}</ul>`;
+  document.getElementById("pf-warn-count").textContent = count;
+  dd.innerHTML = sections.join("");
 }
 
 // Warndreieck im Header: Dropdown auf-/zuklappen
@@ -1550,8 +1862,14 @@ document.getElementById("ub-save").addEventListener("click", async () => {
     { buchungsdatum: datum, beschreibung: text || ("Umbuchung an " + auf), soll: -b, haben: 0, kategorie: "Umbuchung", bank: von, umbuchung: true },
     { buchungsdatum: datum, beschreibung: text || ("Umbuchung von " + von), soll: 0, haben: b, kategorie: "Umbuchung", bank: auf, umbuchung: true },
   ];
-  const { error } = await sb.from("transactions").insert(rows);
+  const { data, error } = await sb.from("transactions").insert(rows).select();
   if (error) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; return; }
+  if (data && data.length === 2) {
+    await Promise.all([
+      sb.from("transactions").update({ umbuchung_partner: data[1].id }).eq("id", data[0].id),
+      sb.from("transactions").update({ umbuchung_partner: data[0].id }).eq("id", data[1].id),
+    ]);
+  }
   msg.textContent = "Umbuchung gespeichert."; msg.style.color = "var(--green)";
   document.getElementById("ub-betrag").value = ""; document.getElementById("ub-text").value = "";
   loadData();
@@ -1812,14 +2130,20 @@ function renderDashboard() {
 
   document.getElementById("kpi-networth").textContent = euro(networth);
   document.getElementById("kpi-liquid").textContent = euro(liquid);
+  const heroLiq = document.getElementById("hero-liquid"); if (heroLiq) heroLiq.textContent = euro(liquid);
   document.getElementById("kpi-portfolio").textContent = euro(pWert);
   const gainEl = document.getElementById("kpi-portfolio-gain");
   gainEl.textContent = pWert ? `Gewinn ${euro(pGain)} (${pPct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %)` : "";
   gainEl.style.color = pGain >= 0 ? "#2E7D32" : "#C62828";
+  const einEl = document.getElementById("kpi-ein");
+  if (einEl) einEl.textContent = euro(cfEin);
   const cfEl = document.getElementById("kpi-cashflow");
   const cfNet = cfEin + cfAus;
   cfEl.textContent = euro(cfNet);
   cfEl.className = "v " + (cfNet >= 0 ? "pos" : "neg");
+  const heroCf = document.getElementById("hero-cashflow");
+  if (heroCf) { heroCf.textContent = euro(cfNet); heroCf.style.color = cfNet >= 0 ? "var(--green)" : "var(--red)"; }
+  renderIncomeOverview();
 
   // Ausgaben (Zeitraum) – als positiver Betrag
   document.getElementById("kpi-ausgaben").textContent = euro(Math.abs(cfAus));
@@ -1850,6 +2174,7 @@ function renderDashboard() {
   const nwNet = networth - latSteuer;
   nwNetEl.textContent = euro(nwNet);
   nwNetEl.className = "v " + (nwNet >= 0 ? "pos" : "neg");
+  const heroNw = document.getElementById("hero-networth"); if (heroNw) heroNw.textContent = euro(nwNet);
 
   // ---- Finanzielle Freiheit ----
   const ffNow = new Date();
@@ -1883,17 +2208,35 @@ function renderDashboard() {
   lEl.textContent = euro(luecke); lEl.className = "v " + (luecke > 0 ? "neg" : "pos");
   document.getElementById("ff-verfuegbar").textContent = euro(Math.max(0, avail));
   const res = document.getElementById("ff-result");
+  const heroFr = document.getElementById("hero-freiheit");
   if (luecke <= 0) {
     res.textContent = "unbegrenzt – passives Einkommen deckt die Ausgaben";
     res.style.color = "var(--green)";
+    if (heroFr) { heroFr.textContent = "unbegrenzt"; heroFr.style.color = "var(--green)"; }
   } else {
     const monate = avail / luecke, jahre = monate / 12;
     res.textContent = `${monate.toLocaleString("de-DE", { maximumFractionDigits: 0 })} Monate (${jahre.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Jahre)`;
     res.style.color = "var(--text)";
+    if (heroFr) { heroFr.textContent = `${jahre.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Jahre`; heroFr.style.color = "var(--text)"; }
   }
 
   drawWealthChart(document.getElementById("dash-networth-chart"), wealthSeries());
   drawCashflowChart(document.getElementById("dash-cashflow-chart"), cashflowSeries());
+  drawInvestmentChart(document.getElementById("dash-invest"), investmentSeries());
+  // Schuldenentwicklung
+  const debtPts = schuldenSeries();
+  drawDebtChart(document.getElementById("dash-debt-chart"), debtPts);
+  let schuldenAktuell = 0;
+  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { schuldenAktuell += (Number(d.restschuld) || 0) * ((Number(d.anteil_user) || 100) / 100); });
+  const schEl = document.getElementById("kpi-schulden"); if (schEl) schEl.textContent = euro(schuldenAktuell);
+  const delEl = document.getElementById("kpi-schulden-delta");
+  if (delEl) {
+    if (debtPts.length >= 2) {
+      const delta = debtPts[debtPts.length - 1].v - debtPts[0].v;
+      delEl.textContent = (delta > 0 ? "+" : "") + euro(delta);
+      delEl.className = "v " + (delta <= 0 ? "pos" : "neg");
+    } else { delEl.textContent = "–"; delEl.className = "v"; }
+  }
   renderDashCat();
   drawDonut(document.getElementById("dash-alloc"), [
     { label: "Liquide Mittel", value: Math.max(0, liquid), color: "#2F5DA8" },
@@ -1903,6 +2246,7 @@ function renderDashboard() {
     { label: "Pensionsfonds", value: Math.max(0, pensWert), color: "#5B86C9" },
   ]);
   renderDashBindung(latest);
+  if (typeof renderSteuern === "function") renderSteuern();
 }
 
 // Kapitalbindung über alle Anlageklassen (gewichtet mit Nutzer-Anteil)
@@ -1965,7 +2309,7 @@ function netWorthSeries() {
 function cashflowSeries() {
   const map = {};
   allRows.forEach((r) => {
-    if (!r.buchungsdatum || !bankSelected(r.bank || "")) return;
+    if (r.umbuchung || !r.buchungsdatum || !bankSelected(r.bank || "")) return;
     const M = r.buchungsdatum.slice(0, 7);
     if (!map[M]) map[M] = { ein: 0, aus: 0 };
     const sh = userShare(r.bank || "");
@@ -1984,7 +2328,7 @@ function renderDashCat() {
   if (!el) return;
   const map = {};
   allRows.forEach((r) => {
-    if (!dateInRange(r.buchungsdatum) || !bankSelected(r.bank || "")) return;
+    if (r.umbuchung || !dateInRange(r.buchungsdatum) || !bankSelected(r.bank || "")) return;
     const soll = Number(r.soll) || 0;
     if (soll >= 0) return;
     const k = (r.kategorie || "").trim() || "Ohne Kategorie";
@@ -1994,6 +2338,32 @@ function renderDashCat() {
   if (arr.length === 0) { el.innerHTML = `<div class="empty">Keine Ausgaben im Zeitraum.</div>`; return; }
   const max = Math.max(...arr.map((a) => a.val));
   el.innerHTML = arr.map((a) => `<div class="hbar"><span class="hbar-label" title="${esc(a.name)}">${esc(a.name)}</span><span class="hbar-track"><span class="hbar-fill" style="width:${(a.val / max * 100).toFixed(1)}%"></span></span><span class="hbar-val neg">${euro(a.val)}</span></div>`).join("");
+}
+
+// Einkommensübersicht: aktives Einkommen (Arbeit) vs. passives Einkommen je Quelle (pro Jahr)
+function renderIncomeOverview() {
+  const el = document.getElementById("dash-income");
+  if (!el) return;
+  const now = new Date();
+  const cmKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const sD = new Date(now.getFullYear(), now.getMonth() - 12, 1);
+  const sKey = `${sD.getFullYear()}-${String(sD.getMonth() + 1).padStart(2, "0")}`;
+  let aktivJahr = 0;
+  allRows.forEach((r) => {
+    if (r.umbuchung || r.immo_id || !r.buchungsdatum || !bankSelected(r.bank || "")) return;  // Miet-Einnahmen (immo_id) zählen nicht als Arbeit
+    const m = String(r.buchungsdatum).slice(0, 7);
+    if (m < sKey || m >= cmKey) return;
+    aktivJahr += (Number(r.haben) || 0) * userShare(r.bank || "");
+  });
+  let passivImmo = 0;
+  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { const k = immoKPIs(d); if (k.verm) passivImmo += (k.mieteNetto || 0) * ((Number(d.anteil_user) || 100) / 100) * 12; });
+  let passivBet = 0;
+  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { passivBet += betKPIs(d).jahresertrag; });
+  drawDonut(el, [
+    { label: "Arbeit (12 Mon.)", value: Math.max(0, aktivJahr), color: "#2F5DA8" },
+    { label: "Immobilien (Miete/Jahr)", value: Math.max(0, passivImmo), color: "#E0A800" },
+    { label: "Beteiligungen (Ertrag/Jahr)", value: Math.max(0, passivBet), color: "#6B6B6B" },
+  ]);
 }
 
 // Passives Einkommen / Monat (aktuell): Netto-Miete + Netto-Beteiligungsertrag
@@ -2043,7 +2413,7 @@ function wealthSeries() {
     const gain = val - inv;
     const startKey = monthMinus(M, 11);
     let aus = 0;
-    allRows.forEach((r) => { if (!r.buchungsdatum || !bankSelected(r.bank || "")) return; const m = r.buchungsdatum.slice(0, 7); if (m < startKey || m > M) return; aus += (Number(r.soll) || 0) * userShare(r.bank || ""); });
+    allRows.forEach((r) => { if (r.umbuchung || !r.buchungsdatum || !bankSelected(r.bank || "")) return; const m = r.buchungsdatum.slice(0, 7); if (m < startKey || m > M) return; aus += (Number(r.soll) || 0) * userShare(r.bank || ""); });
     const avgAus = Math.abs(aus) / 12;
     const avail = cash + (val - 0.26 * Math.max(0, gain));
     const luecke = avgAus - passiv;
@@ -2141,6 +2511,115 @@ function drawAreaChart(el, points) {
     tip.style.top = ((gy / H) * rect.height) + "px"; tip.style.display = "";
   });
   svg.addEventListener("mouseleave", () => { guide.style.display = "none"; dot.style.display = "none"; tip.style.display = "none"; });
+}
+
+// Schuldenentwicklung: Gesamt-Restschuld (Immobilien) je Monat, anteilig gewichtet
+function schuldenSeries() {
+  const md = [];
+  (typeof immoSchuld !== "undefined" ? immoSchuld : []).forEach((s) => { if (s.datum) md.push(s.datum.slice(0, 7)); });
+  if (md.length === 0) return [];
+  const months = monthRange(md.reduce((a, b) => a < b ? a : b), md.reduce((a, b) => a > b ? a : b));
+  const byImmo = {};
+  immoSchuld.forEach((s) => { (byImmo[s.immo_id] = byImmo[s.immo_id] || []).push({ m: s.datum.slice(0, 7), wert: Number(s.restschuld) || 0 }); });
+  Object.values(byImmo).forEach((a) => a.sort((x, y) => x.m < y.m ? -1 : 1));
+  const anteil = (id) => { const d = immoRows.find((x) => x.id === id); return d ? (Number(d.anteil_user) || 100) / 100 : 1; };
+  let out = months.map((M) => {
+    let total = 0;
+    Object.keys(byImmo).forEach((id) => { let last = null; for (const s of byImmo[id]) { if (s.m <= M) last = s; else break; } if (last) total += last.wert * anteil(id); });
+    return { m: M, v: total };
+  });
+  const von = document.getElementById("filter-von").value, bis = document.getElementById("filter-bis").value;
+  if (von) out = out.filter((p) => p.m >= von.slice(0, 7));
+  if (bis) out = out.filter((p) => p.m <= bis.slice(0, 7));
+  return out;
+}
+
+function drawDebtChart(el, points) {
+  if (!el) return;
+  if (points.length < 2) { el.innerHTML = `<div class="empty">Mindestens zwei Stände nötig für einen Verlauf.</div>`; return; }
+  const W = 820, H = 240, padL = 64, padR = 16, padT = 20, padB = 42, n = points.length;
+  const maxV = Math.max(...points.map((p) => p.v), 1);
+  const X = (i) => padL + (n === 1 ? 0.5 : i / (n - 1)) * (W - padL - padR);
+  const Y = (v) => H - padB - (v / maxV) * (H - padT - padB);
+  const line = points.map((p, i) => `${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(" ");
+  const area = `${X(0).toFixed(1)},${H - padB} ${line} ${X(n - 1).toFixed(1)},${H - padB}`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="${area}" fill="rgba(198,40,40,0.15)"/>
+    <polyline points="${line}" fill="none" stroke="#C62828" stroke-width="2.5"/>
+    <line id="dd-guide" y1="${padT}" y2="${H - padB}" stroke="#C4C4C4" stroke-width="1" style="display:none"/>
+    <circle id="dd-dot" r="4" fill="#C62828" stroke="#FFFFFF" stroke-width="1.5" style="display:none"/>
+    <text x="${padL}" y="${padT - 6}" fill="#6B6B6B" font-size="12">${Math.round(maxV).toLocaleString("de-DE")} €</text>
+    <text x="${padL}" y="${H - padB + 16}" fill="#6B6B6B" font-size="12">${fmtMonthShort(points[0].m)}</text>
+    <text x="${W - padR}" y="${H - padB + 16}" fill="#6B6B6B" font-size="12" text-anchor="end">${fmtMonthShort(points[n - 1].m)}</text>
+  </svg><div id="dd-tip" class="chart-tip" style="display:none"></div>`;
+  const svg = el.querySelector("svg"), guide = el.querySelector("#dd-guide"), dot = el.querySelector("#dd-dot"), tip = el.querySelector("#dd-tip");
+  svg.addEventListener("mousemove", (e) => {
+    const rect = svg.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) / rect.width * W;
+    let best = 0, bd = Infinity;
+    points.forEach((p, i) => { const d = Math.abs(X(i) - sx); if (d < bd) { bd = d; best = i; } });
+    const p = points[best], gx = X(best), gy = Y(p.v);
+    guide.setAttribute("x1", gx); guide.setAttribute("x2", gx); guide.style.display = "";
+    dot.setAttribute("cx", gx); dot.setAttribute("cy", gy); dot.style.display = "";
+    tip.innerHTML = `<b>${fmtMonthLong(p.m)}</b><br>Schulden: <b>${euro(p.v)}</b>`;
+    tip.style.left = Math.max(70, Math.min(rect.width - 70, (gx / W) * rect.width)) + "px";
+    tip.style.top = ((gy / H) * rect.height) + "px"; tip.style.display = "";
+  });
+  svg.addEventListener("mouseleave", () => { guide.style.display = "none"; dot.style.display = "none"; tip.style.display = "none"; });
+}
+
+// Netto-Investitionen je Monat (Δ investiertes Kapital im ETF-Portfolio)
+function investmentSeries() {
+  const md = [];
+  portfolioRows.forEach((r) => { if (r.datum) md.push(r.datum.slice(0, 7)); });
+  if (md.length === 0) return [];
+  const months = monthRange(md.reduce((a, b) => a < b ? a : b), md.reduce((a, b) => a > b ? a : b));
+  const posSnaps = {};
+  portfolioRows.forEach((r) => {
+    if (!r.datum) return;
+    const bank = r.bank || "";
+    if (!bankSelected(bank)) return;
+    const key = bank + "|" + (r.bezeichnung || "");
+    (posSnaps[key] = posSnaps[key] || []).push({ m: r.datum.slice(0, 7), inv: Number(r.investiert) || 0, bank });
+  });
+  Object.values(posSnaps).forEach((a) => a.sort((x, y) => x.m < y.m ? -1 : 1));
+  const totals = months.map((M) => {
+    let inv = 0;
+    Object.values(posSnaps).forEach((arr) => { let last = null; for (const s of arr) { if (s.m <= M) last = s; else break; } if (last) inv += last.inv * userShare(last.bank); });
+    return inv;
+  });
+  let out = months.map((m, i) => ({ m, delta: i === 0 ? totals[0] : totals[i] - totals[i - 1] }));
+  const von = document.getElementById("filter-von").value, bis = document.getElementById("filter-bis").value;
+  if (von) out = out.filter((p) => p.m >= von.slice(0, 7));
+  if (bis) out = out.filter((p) => p.m <= bis.slice(0, 7));
+  return out;
+}
+
+function drawInvestmentChart(el, points) {
+  if (!el) return;
+  if (points.length === 0) { el.innerHTML = `<div class="empty">Keine Portfolio-Daten.</div>`; return; }
+  const W = 820, H = 240, padL = 70, padR = 16, padT = 20, padB = 42, n = points.length;
+  const maxAbs = Math.max(1, ...points.map((p) => Math.abs(p.delta)));
+  const half = (H - padT - padB) / 2;
+  const Y0 = padT + half;
+  const slot = (W - padL - padR) / n, bw = Math.min(20, slot * 0.6);
+  let bars = "", labels = "";
+  const every = n <= 12 ? 1 : Math.ceil(n / 12);
+  points.forEach((p, i) => {
+    const cx = padL + slot * i + slot / 2;
+    const h = (Math.abs(p.delta) / maxAbs) * half;
+    const y = p.delta >= 0 ? Y0 - h : Y0;
+    const color = p.delta >= 0 ? "#2E7D32" : "#C62828";
+    bars += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, h).toFixed(1)}" fill="${color}"/>`;
+    if (i % every === 0 || i === n - 1) labels += `<text x="${cx.toFixed(1)}" y="${H - padB + 16}" fill="#6B6B6B" font-size="11" text-anchor="middle">${fmtMonthShort(p.m)}</text>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <line x1="${padL}" y1="${Y0}" x2="${W - padR}" y2="${Y0}" stroke="#E0E0E0"/>
+    ${bars}${labels}
+    <text x="6" y="${padT}" fill="#6B6B6B" font-size="11">+${Math.round(maxAbs).toLocaleString("de-DE")} €</text>
+    <text x="6" y="${H - padB}" fill="#6B6B6B" font-size="11">−${Math.round(maxAbs).toLocaleString("de-DE")} €</text>
+  </svg>
+  <div class="donut-legend" style="flex-direction:row;gap:18px;margin-top:8px"><span><i style="background:#2E7D32"></i>Zukauf</span><span><i style="background:#C62828"></i>Verkauf</span></div>`;
 }
 
 function drawCashflowChart(el, points) {
@@ -2270,8 +2749,9 @@ function immoKPIs(d) {
   const effMiete = verm ? n(d.bruttomiete) * (1 - leer / 100) : 0;
   const neben = n(d.condominio) + n(d.versicherung) + n(d.instandhaltung);
   const imuM = d.imu_faellig ? n(d.imu_jahr) / 12 : 0;
+  const mieteIstBrutto = d.miete_brutto !== false;   // Italien: Miete kann netto (Steuer schon weg) oder brutto sein
   let steuerM = 0;
-  if (verm) {
+  if (verm && mieteIstBrutto) {
     if (d.steuermodell === "cedolare") steuerM = effMiete * 0.21;
     else if (d.steuermodell === "irpef") steuerM = Math.max(0, effMiete - neben) * (n(d.grenzsteuersatz) / 100);
   }
@@ -2281,13 +2761,20 @@ function immoKPIs(d) {
   const roe = ekWert !== 0 ? ((mieteNetto * 12) - jahreszins) / ekWert * 100 : 0;
   const cashflowSchuld = mieteNetto - n(d.rate_monat);
   const gesamtrendite = verm ? (nettorendite + n(d.wertsteigerung)) : n(d.wertsteigerung);
-  return { ekWert, ltv, mieteNetto, nettorendite, roe, cashflowSchuld, gesamtrendite, verm };
+  return { ekWert, ltv, mieteNetto, nettorendite, roe, cashflowSchuld, gesamtrendite, verm, steuerM, imuM };
 }
 
+let immoSchuld = [];
+function immoSchuldHistory(id) { return immoSchuld.filter((s) => s.immo_id === id).slice().sort((a, b) => (a.datum < b.datum ? -1 : 1)); }
+
 async function loadImmo() {
-  const { data, error } = await sb.from("immobilien").select("*").order("created_at", { ascending: true });
-  if (error) { console.error(error); return; }
-  immoRows = data || [];
+  const [im, sc] = await Promise.all([
+    sb.from("immobilien").select("*").order("created_at", { ascending: true }),
+    sb.from("immo_schuld").select("*").order("datum", { ascending: true }),
+  ]);
+  if (im.error) { console.error(im.error); return; }
+  immoRows = im.data || [];
+  immoSchuld = sc.error ? [] : (sc.data || []);
   renderImmoSubmenu();
   populateImmoSelect();
   renderImmo();
@@ -2321,6 +2808,20 @@ function immoFieldsHTML(d) {
         <div data-fin><label>Restlaufzeit (Jahre)</label><input type="text" inputmode="decimal" data-f="restlaufzeit" value="${v("restlaufzeit")}" /></div>
         <div><label>Wertsteigerung p.a. (%)</label><input type="text" inputmode="decimal" data-f="wertsteigerung" value="${v("wertsteigerung")}" /></div>
         <div><label>Dein Anteil (%)</label><input type="text" inputmode="decimal" data-f="anteil_user" value="${d.anteil_user != null ? fmtNum(d.anteil_user) : "100"}" /></div>
+      </div>
+    </div>
+    <div class="immo-section">
+      <h4>Schuldenverlauf</h4>
+      <div class="toolbar" style="margin-bottom:10px">
+        <input type="date" data-immo-schuld-datum style="max-width:170px" />
+        <input type="text" inputmode="decimal" data-immo-schuld-wert placeholder="Restschuld (€)" style="max-width:170px" value="${v("restschuld")}" />
+        <button class="secondary" data-immo-schuld-add>Stand erfassen</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Datum</th><th style="text-align:right">Restschuld</th><th></th></tr></thead>
+          <tbody data-immo-schuld-body></tbody>
+        </table>
       </div>
     </div>
     <div class="immo-section" data-miet>
@@ -2415,6 +2916,14 @@ function recomputeImmoCard(card) {
   if (sub) sub.textContent = `${euro(Number(d.marktwert) || 0)} | EK: ${euro(k.ekWert)} | LTV: ${num1(k.ltv)} %`;
   const title = card.querySelector(".immo-title");
   if (title) title.textContent = d.bezeichnung || "Neue Immobilie";
+  // Schuldenverlauf-Historie
+  const sbody = card.querySelector("[data-immo-schuld-body]");
+  if (sbody) {
+    const hist = immoSchuldHistory(card.getAttribute("data-id"));
+    sbody.innerHTML = hist.length === 0
+      ? `<tr><td colspan="3" class="empty">Noch keine Stände erfasst.</td></tr>`
+      : [...hist].reverse().map((s) => `<tr><td>${s.datum ? new Date(s.datum).toLocaleDateString("de-DE") : ""}</td><td class="num">${euro(Number(s.restschuld) || 0)}</td><td class="num"><button class="danger" data-immo-schuld-del="${s.id}">Löschen</button></td></tr>`).join("");
+  }
 }
 
 function renderImmoSummary() {
@@ -2438,6 +2947,9 @@ function renderImmo() {
   list.innerHTML = rows.map(immoCardHTML).join("");
   document.getElementById("immo-empty").classList.toggle("hidden", immoRows.length > 0 || activeImmo);
   list.querySelectorAll(".immo-card").forEach((card) => recomputeImmoCard(card));
+  const t = new Date();
+  const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  list.querySelectorAll("[data-immo-schuld-datum]").forEach((el) => { el.value = iso; });
   renderImmoSummary();
   applyImmoMode();
   renderImmoTx();
@@ -2452,6 +2964,23 @@ immoListEl.addEventListener("click", async (e) => {
     e.stopPropagation();
     if (!confirm("Diese Immobilie wirklich löschen?")) return;
     const { error } = await sb.from("immobilien").delete().eq("id", card.getAttribute("data-id"));
+    if (error) alert("Fehler: " + error.message); else loadImmo();
+    return;
+  }
+  if (e.target.closest("[data-immo-schuld-add]")) {
+    const id = card.getAttribute("data-id");
+    const datum = card.querySelector("[data-immo-schuld-datum]").value;
+    const wert = numDE(card.querySelector("[data-immo-schuld-wert]").value);
+    if (!datum || wert == null) { alert("Bitte Datum und Restschuld eingeben."); return; }
+    const { error } = await sb.from("immo_schuld").insert([{ immo_id: id, datum, restschuld: wert }]);
+    if (error) { alert("Fehler: " + error.message); return; }
+    await sb.from("immobilien").update({ restschuld: wert }).eq("id", id);  // aktuelle Restschuld = letzter Stand
+    loadImmo();
+    return;
+  }
+  const schuldDel = e.target.closest("[data-immo-schuld-del]");
+  if (schuldDel) {
+    const { error } = await sb.from("immo_schuld").delete().eq("id", schuldDel.getAttribute("data-immo-schuld-del"));
     if (error) alert("Fehler: " + error.message); else loadImmo();
     return;
   }
@@ -2855,13 +3384,186 @@ document.getElementById("pens-add").addEventListener("click", async () => {
 });
 
 // ======================================================================
+//  Steuern
+// ======================================================================
+let steuerSettings = {};
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
+// IRPEF-Stufen 2026: 23% bis 28.000, 33% bis 50.000, 43% darüber
+function irpef(income) {
+  const i = Math.max(0, Number(income) || 0);
+  let t = Math.min(i, 28000) * 0.23;
+  if (i > 28000) t += (Math.min(i, 50000) - 28000) * 0.33;
+  if (i > 50000) t += (i - 50000) * 0.43;
+  return t;
+}
+// Arbeitseinkommen der letzten 12 Monate (Transaktions-Einnahmen ohne Immobilien-Zuordnung)
+function workIncomeYear() {
+  const now = new Date();
+  const cmKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const sD = new Date(now.getFullYear(), now.getMonth() - 12, 1);
+  const sKey = `${sD.getFullYear()}-${String(sD.getMonth() + 1).padStart(2, "0")}`;
+  let v = 0;
+  allRows.forEach((r) => {
+    if (r.umbuchung || r.immo_id || !r.buchungsdatum || !bankSelected(r.bank || "")) return;
+    const m = String(r.buchungsdatum).slice(0, 7);
+    if (m < sKey || m >= cmKey) return;
+    v += (Number(r.haben) || 0) * userShare(r.bank || "");
+  });
+  return v;
+}
+
+async function loadSteuer() {
+  const { data, error } = await sb.from("steuer_einstellungen").select("*").limit(1);
+  steuerSettings = (!error && data && data[0]) ? data[0] : {};
+  const g = document.getElementById("set-grenz"); if (g) g.value = steuerSettings.grenzsteuersatz != null ? fmtNum(steuerSettings.grenzsteuersatz) : "23";
+  const vz = document.getElementById("set-voraus"); if (vz) vz.value = steuerSettings.vorauszahlung != null ? fmtNum(steuerSettings.vorauszahlung) : "";
+  renderSteuern();
+}
+
+function renderSteuern() {
+  if (!document.getElementById("st-total")) return;
+  const grenz = Number(steuerSettings && steuerSettings.grenzsteuersatz) || 23;
+  const grenzF = grenz / 100;
+  const n = (v) => Number(v) || 0;
+
+  // Einkommensteuer
+  const workInc = workIncomeYear();
+  const incomeTax = irpef(workInc);
+
+  // Mieteinnahmen + IMU
+  let rentTax = 0, imuTotal = 0;
+  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => {
+    const k = immoKPIs(d); const sh = (n(d.anteil_user) || 100) / 100;
+    rentTax += (k.steuerM || 0) * 12 * sh;
+    imuTotal += (k.imuM || 0) * 12 * sh;
+  });
+
+  // Kapitalerträge laufend (Beteiligungen)
+  let zinsTaxSum = 0, divTaxSum = 0;
+  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => {
+    zinsTaxSum += n(d.darlehen) * n(d.zins) / 100 * 0.26;
+    divTaxSum += d.dividende_netto ? 0 : n(d.dividende_jahr) * 0.26;
+  });
+  const kapLaufend = zinsTaxSum + divTaxSum;
+
+  // Latente Steuer (ETF + Beteiligungen Buchgewinne)
+  let etfGain = 0;
+  const latest = {};
+  (typeof portfolioRows !== "undefined" ? portfolioRows : []).forEach((r) => {
+    const bank = r.bank || ""; const key = bank + "|" + (r.bezeichnung || "");
+    const st = (r.datum || "") + (r.created_at || "");
+    if (!latest[key] || st >= latest[key].st) latest[key] = { ...r, st, bank };
+  });
+  Object.values(latest).forEach((r) => { const g = (n(r.wert) - n(r.investiert)) * userShare(r.bank); if (g > 0) etfGain += g; });
+  let betGain = 0;
+  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { const g = n(d.marktwert) - n(d.invest_hist); if (g > 0) betGain += g; });
+  const latent = 0.26 * (etfGain + betGain);
+
+  // Absetzbare Beiträge
+  let totalContrib = 0;
+  (typeof pensRows !== "undefined" ? pensRows : []).forEach((d) => { totalContrib += (n(d.eigenbeitrag) + n(d.agbeitrag)) * 12; });
+  const absetzbar = Math.min(totalContrib, 5164.57);
+  const vorteil = absetzbar * grenzF;
+
+  // Summen
+  const laufend = incomeTax + rentTax + imuTotal + kapLaufend;
+  const voraus = n(steuerSettings && steuerSettings.vorauszahlung);
+  const diff = laufend - voraus;
+
+  // Übersicht
+  setText("st-total", euro(laufend));
+  setText("st-einkommen", euro(incomeTax));
+  setText("st-miete", euro(rentTax));
+  setText("st-imu", euro(imuTotal));
+  setText("st-kapital", euro(kapLaufend));
+  setText("st-latent", euro(latent));
+  setText("st-vorteil", euro(vorteil));
+  const diffEl = document.getElementById("st-diff");
+  if (diffEl) { diffEl.textContent = (diff >= 0 ? "Nachzahlung " : "Guthaben ") + euro(Math.abs(diff)); diffEl.className = "v " + (diff > 0 ? "neg" : "pos"); }
+  renderStBreakdown([
+    { name: "Einkommensteuer", v: incomeTax },
+    { name: "Mieteinnahmen", v: rentTax },
+    { name: "IMU", v: imuTotal },
+    { name: "Kapitalerträge", v: kapLaufend },
+  ]);
+
+  // Einkommen-Seite
+  setText("ste-income", euro(workInc));
+  setText("ste-tax", euro(incomeTax));
+  setText("ste-rate", workInc > 0 ? pctDE(incomeTax / workInc * 100) : "–");
+  setText("ste-net", euro(workInc - incomeTax));
+  const eb = document.getElementById("ste-body");
+  if (eb) {
+    const i = Math.max(0, workInc);
+    const b1 = Math.min(i, 28000), b2 = i > 28000 ? Math.min(i, 50000) - 28000 : 0, b3 = i > 50000 ? i - 50000 : 0;
+    eb.innerHTML = [["bis 28.000 €", b1, 23], ["28.000–50.000 €", b2, 33], ["über 50.000 €", b3, 43]]
+      .map((r) => `<tr><td>${r[0]}</td><td class="num">${euro(r[1])}</td><td class="num">${r[2]} %</td><td class="num neg">${euro(r[1] * r[2] / 100)}</td></tr>`).join("");
+  }
+
+  // Mieteinnahmen-Seite
+  const mb = document.getElementById("stm-body");
+  if (mb) {
+    const rows = (typeof immoRows !== "undefined" ? immoRows : []).filter((d) => d.typ === "vermietung");
+    mb.innerHTML = rows.length === 0 ? `<tr><td colspan="5" class="empty">Keine vermieteten Immobilien.</td></tr>`
+      : rows.map((d) => { const k = immoKPIs(d); const sh = (n(d.anteil_user) || 100) / 100; const modell = { cedolare: "Cedolare 21 %", irpef: "IRPEF", keine: "Keine" }[d.steuermodell || "cedolare"]; return `<tr><td>${esc(d.bezeichnung || "")}</td><td>${modell}</td><td class="num">${euro(n(d.bruttomiete) * 12 * sh)}</td><td class="num neg">${euro((k.steuerM || 0) * 12 * sh)}</td><td class="num neg">${euro((k.imuM || 0) * 12 * sh)}</td></tr>`; }).join("");
+  }
+
+  // Kapitalerträge-Seite
+  const kb = document.getElementById("stk-body");
+  if (kb) {
+    const rows = (typeof betRows !== "undefined" ? betRows : []);
+    kb.innerHTML = rows.length === 0 ? `<tr><td colspan="4" class="empty">Keine Beteiligungen.</td></tr>`
+      : rows.map((d) => { const zb = n(d.darlehen) * n(d.zins) / 100; const db = n(d.dividende_jahr); const tax = zb * 0.26 + (d.dividende_netto ? 0 : db * 0.26); return `<tr><td>${esc(d.name || "")}</td><td class="num">${euro(zb)}</td><td class="num">${euro(db)}</td><td class="num neg">${euro(tax)}</td></tr>`; }).join("");
+  }
+  setText("stk-etf-gain", euro(etfGain));
+  setText("stk-bet-gain", euro(betGain));
+  setText("stk-latent", euro(latent));
+
+  // Absetzbares-Seite
+  setText("sta-beitrag", euro(totalContrib));
+  setText("sta-absetzbar", euro(absetzbar));
+  setText("sta-satz", pctDE(grenz));
+  setText("sta-vorteil", euro(vorteil));
+  const ab = document.getElementById("sta-body");
+  if (ab) {
+    const rows = (typeof pensRows !== "undefined" ? pensRows : []);
+    ab.innerHTML = rows.length === 0 ? `<tr><td colspan="2" class="empty">Keine Pensionsfonds.</td></tr>`
+      : rows.map((d) => `<tr><td>${esc(d.name || "")}</td><td class="num">${euro((n(d.eigenbeitrag) + n(d.agbeitrag)) * 12)}</td></tr>`).join("");
+  }
+}
+
+function renderStBreakdown(arr) {
+  const el = document.getElementById("st-breakdown");
+  if (!el) return;
+  const items = arr.filter((a) => a.v > 0).sort((a, b) => b.v - a.v);
+  if (items.length === 0) { el.innerHTML = `<div class="empty">Keine laufende Steuerlast.</div>`; return; }
+  const max = Math.max(...items.map((a) => a.v));
+  el.innerHTML = items.map((a) => `<div class="hbar"><span class="hbar-label">${esc(a.name)}</span><span class="hbar-track"><span class="hbar-fill" style="width:${(a.v / max * 100).toFixed(1)}%"></span></span><span class="hbar-val neg">${euro(a.v)}</span></div>`).join("");
+}
+
+document.getElementById("set-save").addEventListener("click", async () => {
+  const grenz = numDE(document.getElementById("set-grenz").value);
+  const voraus = numDE(document.getElementById("set-voraus").value);
+  const msg = document.getElementById("set-msg");
+  const payload = { grenzsteuersatz: grenz, vorauszahlung: voraus };
+  let error;
+  if (steuerSettings && steuerSettings.id) ({ error } = await sb.from("steuer_einstellungen").update(payload).eq("id", steuerSettings.id));
+  else ({ error } = await sb.from("steuer_einstellungen").insert([payload]));
+  if (error) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; return; }
+  msg.textContent = "Gespeichert."; msg.style.color = "var(--green)";
+  loadSteuer();
+});
+
+// ======================================================================
 //  CSV-Vorlage herunterladen
 // ======================================================================
 document.getElementById("csv-template-btn").addEventListener("click", () => {
   const csv = "﻿" + [
-    "Buchungsdatum;Beschreibung;Soll Euro;Haben Euro;Kategorie;Bank",
-    "01.01.26;Beispiel Ausgabe;-50,00 €;0;Lebensmittel;Volksbank",
-    "01.01.26;Beispiel Einnahme;0;2500,00 €;Gehalt;Sparkasse",
+    "Buchungsdatum;Beschreibung;Soll Euro;Haben Euro;Kategorie;Bank;Immobilie",
+    "01.01.26;Beispiel Ausgabe;-50,00 €;0;Lebensmittel;Volksbank;",
+    "01.01.26;Beispiel Einnahme;0;2500,00 €;Gehalt;Sparkasse;",
+    "01.01.26;Mieteinnahme;0;800,00 €;Miete;Raiffeisenkasse;Wohnung Verona",
   ].join("\r\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -2892,6 +3594,8 @@ document.getElementById("csv-import-btn").addEventListener("click", () => {
           const key = Object.keys(row).find((k) => k.trim().toLowerCase() === name.toLowerCase());
           return key ? row[key] : "";
         };
+        const immoName = (get("Immobilie") || "").trim();
+        const immo = immoName ? immoRows.find((d) => (d.bezeichnung || "").trim().toLowerCase() === immoName.toLowerCase()) : null;
         return {
           buchungsdatum: parseDate(get("Buchungsdatum")),
           beschreibung: (get("Beschreibung") || "").trim() || null,
@@ -2899,6 +3603,7 @@ document.getElementById("csv-import-btn").addEventListener("click", () => {
           haben: parseAmount(get("Haben Euro")),
           kategorie: (get("Kategorie") || "").trim() || null,
           bank: (get("Bank") || "").trim() || null,
+          immo_id: immo ? immo.id : null,
         };
       }).filter((r) => r.beschreibung || r.buchungsdatum || r.soll != null || r.haben != null);
 
