@@ -2273,38 +2273,6 @@ function renderDashBindung(portfolioLatest) {
   });
 }
 
-function netWorthSeries() {
-  const md = [];
-  allRows.forEach((r) => { if (r.buchungsdatum) md.push(r.buchungsdatum.slice(0, 7)); });
-  portfolioRows.forEach((r) => { if (r.datum) md.push(r.datum.slice(0, 7)); });
-  banks.forEach((b) => { if (b.vertragsstart) md.push(b.vertragsstart.slice(0, 7)); });
-  if (md.length === 0) return [];
-  let months = monthRange(md.reduce((a, b) => a < b ? a : b), md.reduce((a, b) => a > b ? a : b));
-  const von = document.getElementById("filter-von").value, bis = document.getElementById("filter-bis").value;
-  if (von) months = months.filter((m) => m >= von.slice(0, 7));
-  if (bis) months = months.filter((m) => m <= bis.slice(0, 7));
-  const posSnaps = {};
-  portfolioRows.forEach((r) => {
-    if (!r.datum) return;
-    const bank = r.bank || "";
-    if (!bankSelected(bank)) return;
-    const key = bank + "|" + (r.bezeichnung || "");
-    (posSnaps[key] = posSnaps[key] || []).push({ m: r.datum.slice(0, 7), wert: Number(r.wert) || 0, bank });
-  });
-  Object.values(posSnaps).forEach((a) => a.sort((x, y) => x.m < y.m ? -1 : 1));
-  return months.map((M) => {
-    let liquid = 0;
-    banks.forEach((b) => {
-      if (!bankSelected(b.name)) return;
-      const start = Number(b.saldo_start) || 0;
-      const txSum = allRows.filter((r) => (r.bank || "") === b.name && r.buchungsdatum && r.buchungsdatum.slice(0, 7) <= M).reduce((s, r) => s + (Number(r.soll) || 0) + (Number(r.haben) || 0), 0);
-      liquid += (start + txSum) * userShare(b.name);
-    });
-    let pw = 0;
-    Object.values(posSnaps).forEach((arr) => { let last = null; for (const s of arr) { if (s.m <= M) last = s; else break; } if (last) pw += last.wert * userShare(last.bank); });
-    return { m: M, v: liquid + pw };
-  });
-}
 
 function cashflowSeries() {
   const map = {};
