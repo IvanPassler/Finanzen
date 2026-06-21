@@ -2364,6 +2364,8 @@ function wealthSeries() {
   const von = document.getElementById("filter-von").value, bis = document.getElementById("filter-bis").value;
   if (von) months = months.filter((m) => m >= von.slice(0, 7));
   if (bis) months = months.filter((m) => m <= bis.slice(0, 7));
+
+  // Portfolio-Snapshots nach Position sortiert (unverändert)
   const posSnaps = {};
   portfolioRows.forEach((r) => {
     if (!r.datum) return;
@@ -2373,13 +2375,35 @@ function wealthSeries() {
     (posSnaps[key] = posSnaps[key] || []).push({ m: r.datum.slice(0, 7), wert: Number(r.wert) || 0, inv: Number(r.investiert) || 0, bank });
   });
   Object.values(posSnaps).forEach((a) => a.sort((x, y) => x.m < y.m ? -1 : 1));
+
+  // Pre-Aggregation: TX-Deltas pro Bank+Monat (vermeidet allRows-Scan im Inner Loop)
+  const txByBankMonth = {};
+  allRows.forEach((r) => {
+    if (!r.buchungsdatum || !bankSelected(r.bank || "")) return;
+    const bank = r.bank || "";
+    const month = r.buchungsdatum.slice(0, 7);
+    if (!txByBankMonth[bank]) txByBankMonth[bank] = {};
+    txByBankMonth[bank][month] = (txByBankMonth[bank][month] || 0) + (Number(r.soll) || 0) + (Number(r.haben) || 0);
+  });
+  const txBankSorted = {};
+  Object.entries(txByBankMonth).forEach(([bank, deltas]) => { txBankSorted[bank] = Object.keys(deltas).sort(); });
+
+  // Pre-Aggregation: Soll-Summe pro Monat für 12-Monats-Ausgabenberechnung
+  const sollByMonth = {};
+  allRows.forEach((r) => {
+    if (r.umbuchung || !r.buchungsdatum || !bankSelected(r.bank || "")) return;
+    const m = r.buchungsdatum.slice(0, 7);
+    sollByMonth[m] = (sollByMonth[m] || 0) + (Number(r.soll) || 0) * userShare(r.bank || "");
+  });
+
   const passiv = currentPassiveIncome();
   return months.map((M) => {
     let cash = 0;
     banks.forEach((b) => {
       if (!bankSelected(b.name)) return;
       const start = Number(b.saldo_start) || 0;
-      const txSum = allRows.filter((r) => (r.bank || "") === b.name && r.buchungsdatum && r.buchungsdatum.slice(0, 7) <= M).reduce((s, r) => s + (Number(r.soll) || 0) + (Number(r.haben) || 0), 0);
+      let txSum = 0;
+      (txBankSorted[b.name] || []).forEach((m) => { if (m <= M) txSum += txByBankMonth[b.name][m]; });
       cash += (start + txSum) * userShare(b.name);
     });
     let inv = 0, val = 0;
@@ -2387,7 +2411,7 @@ function wealthSeries() {
     const gain = val - inv;
     const startKey = monthMinus(M, 11);
     let aus = 0;
-    allRows.forEach((r) => { if (r.umbuchung || !r.buchungsdatum || !bankSelected(r.bank || "")) return; const m = r.buchungsdatum.slice(0, 7); if (m < startKey || m > M) return; aus += (Number(r.soll) || 0) * userShare(r.bank || ""); });
+    Object.entries(sollByMonth).forEach(([m, v]) => { if (m >= startKey && m <= M) aus += v; });
     const avgAus = Math.abs(aus) / 12;
     const avail = cash + (val - KEST * Math.max(0, gain));
     const luecke = avgAus - passiv;
