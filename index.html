@@ -2102,9 +2102,8 @@ function renderDashBankFilter() {
     : names.map((n) => `<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="dash-bank-cb" value="${n.replace(/"/g, "&quot;")}" ${bankSelected(n) ? "checked" : ""} style="width:auto"> ${esc(n)}</label>`).join("");
 }
 
-function renderDashboard() {
-  if (!document.getElementById("kpi-networth")) return;
-  // --- aktuelle Werte (gewichtet mit Nutzer-Anteil) ---
+// Aktuelles Vermögens-Snapshot (gewichtet mit Nutzer-Anteil)
+function computeWealthSnapshot() {
   let liquid = 0;
   banks.forEach((b) => {
     if (!bankSelected(b.name)) return;
@@ -2123,7 +2122,16 @@ function renderDashboard() {
   let pensWert = 0;
   pensRows.forEach((d) => { pensWert += pensCurrentWert(d.id); });
   const networth = liquid + pWert + immoEk + betVerm + pensWert;
+  let etfGain = 0;
+  Object.values(latest).forEach((r) => { const g = (Number(r.wert) || 0) - (Number(r.investiert) || 0); if (g > 0) etfGain += g * userShare(r.bank); });
+  let betGain = 0;
+  betRows.forEach((d) => { const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); if (g > 0) betGain += g; });
+  const latSteuer = KEST * (etfGain + betGain);
+  return { liquid, latest, pInv, pWert, pGain, pPct, immoEk, betVerm, pensWert, networth, latSteuer };
+}
 
+// Cashflow im aktuellen Datumsfilter + Ausgaben letzten Monat
+function computeCashflow() {
   let cfEin = 0, cfAus = 0;
   allRows.forEach((r) => {
     if (r.umbuchung || !dateInRange(r.buchungsdatum) || !bankSelected(r.bank || "")) return;
@@ -2131,69 +2139,29 @@ function renderDashboard() {
     cfEin += (Number(r.haben) || 0) * sh;
     cfAus += (Number(r.soll) || 0) * sh;
   });
-
-  document.getElementById("kpi-networth").textContent = euro(networth);
-  document.getElementById("kpi-liquid").textContent = euro(liquid);
-  const heroLiq = document.getElementById("hero-liquid"); if (heroLiq) heroLiq.textContent = euro(liquid);
-  document.getElementById("kpi-portfolio").textContent = euro(pWert);
-  const gainEl = document.getElementById("kpi-portfolio-gain");
-  gainEl.textContent = pWert ? `Gewinn ${euro(pGain)} (${pPct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %)` : "";
-  gainEl.style.color = pGain >= 0 ? "var(--green)" : "var(--red)";
-  const einEl = document.getElementById("kpi-ein");
-  if (einEl) einEl.textContent = euro(cfEin);
-  const cfEl = document.getElementById("kpi-cashflow");
-  const cfNet = cfEin + cfAus;
-  cfEl.textContent = euro(cfNet);
-  cfEl.className = "v " + (cfNet >= 0 ? "pos" : "neg");
-  const heroCf = document.getElementById("hero-cashflow");
-  if (heroCf) { heroCf.textContent = euro(cfNet); heroCf.style.color = cfNet >= 0 ? "var(--green)" : "var(--red)"; }
-  renderIncomeOverview();
-
-  // Ausgaben (Zeitraum) – als positiver Betrag
-  document.getElementById("kpi-ausgaben").textContent = euro(Math.abs(cfAus));
-  // Ausgaben letzter Kalendermonat (unabhängig vom Zeitraumfilter)
-  const now = new Date();
-  const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lmKey = isoMonth(lm);
+  const lmKey = isoMonth(new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1));
   let ausLM = 0;
   allRows.forEach((r) => {
     if (r.umbuchung || !r.buchungsdatum || !bankSelected(r.bank || "")) return;
     if (String(r.buchungsdatum).slice(0, 7) !== lmKey) return;
     ausLM += (Number(r.soll) || 0) * userShare(r.bank || "");
   });
-  document.getElementById("kpi-ausgaben-lm").textContent = euro(Math.abs(ausLM));
-  // Passives Einkommen: Netto-Miete (Immobilien) + Netto-Ertrag (Beteiligungen)
-  const passivM = currentPassiveIncome();
-  document.getElementById("kpi-passiv").textContent = euro(passivM);
-  document.getElementById("kpi-passiv-jahr").textContent = euro(passivM * 12);
+  return { cfEin, cfAus, cfNet: cfEin + cfAus, ausLM };
+}
 
-  // Latente Steuer (26 %) auf nicht realisierte Gewinne (ETFs + Beteiligungen)
-  let etfGain = 0;
-  Object.values(latest).forEach((r) => { const g = (Number(r.wert) || 0) - (Number(r.investiert) || 0); if (g > 0) etfGain += g * userShare(r.bank); });
-  let betGain = 0;
-  betRows.forEach((d) => { const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); if (g > 0) betGain += g; });
-  const latSteuer = KEST * (etfGain + betGain);
-  document.getElementById("kpi-lat-steuer").textContent = euro(latSteuer);
-  const nwNetEl = document.getElementById("kpi-networth-net");
-  const nwNet = networth - latSteuer;
-  nwNetEl.textContent = euro(nwNet);
-  nwNetEl.className = "v " + (nwNet >= 0 ? "pos" : "neg");
-  const heroNw = document.getElementById("hero-networth"); if (heroNw) heroNw.textContent = euro(nwNet);
-
-  // ---- Finanzielle Freiheit ----
-  const ffNow = new Date();
-  const cmKey = isoMonth(ffNow);
-  const sD = new Date(ffNow.getFullYear(), ffNow.getMonth() - 12, 1);
-  const sKey = isoMonth(sD);
+// Finanzielle Freiheit: Ausgaben (12 Mon.) und verfügbares Vermögen
+function computeFFKPIs(liquid, latest, passivM) {
+  const now = new Date();
+  const cmKey = isoMonth(now);
+  const sKey = isoMonth(new Date(now.getFullYear(), now.getMonth() - 12, 1));
   let aus12 = 0;
   allRows.forEach((r) => {
     if (r.umbuchung || !r.buchungsdatum || !bankSelected(r.bank || "")) return;
     const m = String(r.buchungsdatum).slice(0, 7);
-    if (m < sKey || m >= cmKey) return;   // letzte 12 volle Monate
+    if (m < sKey || m >= cmKey) return;
     aus12 += (Number(r.soll) || 0) * userShare(r.bank || "");
   });
   const avgAus = Math.abs(aus12) / 12;
-  // verfügbares Vermögen: nach latenter Steuer, ohne langfristig gebundene Anlagen (liquide voll)
   let avail = liquid;
   Object.values(latest).forEach((r) => {
     if ((r.bindung || "") === "langfristig") return;
@@ -2205,7 +2173,49 @@ function renderDashboard() {
   immoRows.forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100); });
   betRows.forEach((d) => { if ((d.bindung || "") === "langfristig") return; const v = betKPIs(d).vermoegen; const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); avail += v - KEST * Math.max(0, g); });
   pensRows.forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += pensCurrentWert(d.id); });
-  const luecke = avgAus - passivM;
+  return { avgAus, avail, luecke: avgAus - passivM };
+}
+
+function renderDashboard() {
+  if (!document.getElementById("kpi-networth")) return;
+
+  const { liquid, latest, pWert, pGain, pPct, immoEk, betVerm, pensWert, networth, latSteuer } = computeWealthSnapshot();
+  const { cfEin, cfAus, cfNet, ausLM } = computeCashflow();
+  const passivM = currentPassiveIncome();
+  const { avgAus, avail, luecke } = computeFFKPIs(liquid, latest, passivM);
+
+  // Vermögens-KPIs
+  document.getElementById("kpi-networth").textContent = euro(networth);
+  document.getElementById("kpi-liquid").textContent = euro(liquid);
+  const heroLiq = document.getElementById("hero-liquid"); if (heroLiq) heroLiq.textContent = euro(liquid);
+  document.getElementById("kpi-portfolio").textContent = euro(pWert);
+  const gainEl = document.getElementById("kpi-portfolio-gain");
+  gainEl.textContent = pWert ? `Gewinn ${euro(pGain)} (${pPct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %)` : "";
+  gainEl.style.color = pGain >= 0 ? "var(--green)" : "var(--red)";
+  document.getElementById("kpi-lat-steuer").textContent = euro(latSteuer);
+  const nwNet = networth - latSteuer;
+  const nwNetEl = document.getElementById("kpi-networth-net");
+  nwNetEl.textContent = euro(nwNet);
+  nwNetEl.className = "v " + (nwNet >= 0 ? "pos" : "neg");
+  const heroNw = document.getElementById("hero-networth"); if (heroNw) heroNw.textContent = euro(nwNet);
+
+  // Cashflow-KPIs
+  const einEl = document.getElementById("kpi-ein");
+  if (einEl) einEl.textContent = euro(cfEin);
+  const cfEl = document.getElementById("kpi-cashflow");
+  cfEl.textContent = euro(cfNet);
+  cfEl.className = "v " + (cfNet >= 0 ? "pos" : "neg");
+  const heroCf = document.getElementById("hero-cashflow");
+  if (heroCf) { heroCf.textContent = euro(cfNet); heroCf.style.color = cfNet >= 0 ? "var(--green)" : "var(--red)"; }
+  document.getElementById("kpi-ausgaben").textContent = euro(Math.abs(cfAus));
+  document.getElementById("kpi-ausgaben-lm").textContent = euro(Math.abs(ausLM));
+  renderIncomeOverview();
+
+  // Passives Einkommen
+  document.getElementById("kpi-passiv").textContent = euro(passivM);
+  document.getElementById("kpi-passiv-jahr").textContent = euro(passivM * 12);
+
+  // Finanzielle Freiheit
   document.getElementById("ff-ausgaben").textContent = euro(avgAus);
   document.getElementById("ff-passiv").textContent = euro(passivM);
   const lEl = document.getElementById("ff-luecke");
@@ -2224,15 +2234,11 @@ function renderDashboard() {
     if (heroFr) { heroFr.textContent = `${jahre.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Jahre`; heroFr.style.color = "var(--text)"; }
   }
 
-  drawWealthChart(document.getElementById("dash-networth-chart"), wealthSeries());
-  drawCashflowChart(document.getElementById("dash-cashflow-chart"), cashflowSeries());
-  drawInvestmentChart(document.getElementById("dash-invest"), investmentSeries());
-  // Schuldenentwicklung
-  const debtPts = schuldenSeries();
-  drawDebtChart(document.getElementById("dash-debt-chart"), debtPts);
+  // Schulden-KPI
   let schuldenAktuell = 0;
   immoRows.forEach((d) => { schuldenAktuell += (Number(d.restschuld) || 0) * ((Number(d.anteil_user) || 100) / 100); });
   const schEl = document.getElementById("kpi-schulden"); if (schEl) schEl.textContent = euro(schuldenAktuell);
+  const debtPts = schuldenSeries();
   const delEl = document.getElementById("kpi-schulden-delta");
   if (delEl) {
     if (debtPts.length >= 2) {
@@ -2241,6 +2247,12 @@ function renderDashboard() {
       delEl.className = "v " + (delta <= 0 ? "pos" : "neg");
     } else { delEl.textContent = "–"; delEl.className = "v"; }
   }
+
+  // Charts
+  drawWealthChart(document.getElementById("dash-networth-chart"), wealthSeries());
+  drawCashflowChart(document.getElementById("dash-cashflow-chart"), cashflowSeries());
+  drawInvestmentChart(document.getElementById("dash-invest"), investmentSeries());
+  drawDebtChart(document.getElementById("dash-debt-chart"), debtPts);
   renderDashCat();
   drawDonut(document.getElementById("dash-alloc"), [
     { label: "Liquide Mittel", value: Math.max(0, liquid), color: "#2F5DA8" },
