@@ -1385,6 +1385,7 @@ document.getElementById("entry-cancel").addEventListener("click", resetForm);
 
 entryForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+  const btn = e.submitter; if (btn) { btn.disabled = true; }
   const id = document.getElementById("entry-id").value;
   const payload = {
     buchungsdatum: document.getElementById("f-datum").value || null,
@@ -1399,6 +1400,7 @@ entryForm.addEventListener("submit", async (e) => {
   let error;
   if (id) ({ error } = await sb.from("transactions").update(payload).eq("id", id));
   else    ({ error } = await sb.from("transactions").insert([payload]));
+  if (btn) btn.disabled = false;
   if (error) { showMsg(document.getElementById("entry-msg"), "Fehler: " + error.message, "error"); return; }
   resetForm();
   loadData();
@@ -1727,6 +1729,7 @@ document.getElementById("pf-cancel").addEventListener("click", pfReset);
 
 pfForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+  const btn = e.submitter; if (btn) btn.disabled = true;
   const id = document.getElementById("pf-id").value;
   const payload = {
     datum: document.getElementById("pf-datum").value || null,
@@ -1739,6 +1742,7 @@ pfForm.addEventListener("submit", async (e) => {
   let error;
   if (id) ({ error } = await sb.from("portfolio").update(payload).eq("id", id));
   else    ({ error } = await sb.from("portfolio").insert([payload]));
+  if (btn) btn.disabled = false;
   if (error) { showMsg(document.getElementById("pf-msg"), "Fehler: " + error.message, "error"); return; }
   pfReset();
   loadPortfolio();
@@ -1850,7 +1854,7 @@ function populateBankSelects() {
   const el = document.getElementById("ub-datum");
   if (el) { el.value = isoDate(new Date()); }
 })();
-document.getElementById("ub-save").addEventListener("click", async () => {
+document.getElementById("ub-save").addEventListener("click", async (e) => {
   const datum = document.getElementById("ub-datum").value || null;
   const von = document.getElementById("ub-von").value;
   const auf = document.getElementById("ub-auf").value;
@@ -1859,12 +1863,14 @@ document.getElementById("ub-save").addEventListener("click", async () => {
   const msg = document.getElementById("ub-msg");
   if (!von || !auf || betrag == null || betrag <= 0) { msg.textContent = "Bitte Von-Konto, Auf-Konto und einen positiven Betrag angeben."; msg.style.color = "var(--red)"; return; }
   if (von === auf) { msg.textContent = "Von- und Auf-Konto müssen verschieden sein."; msg.style.color = "var(--red)"; return; }
+  e.target.disabled = true;
   const b = Math.abs(betrag);
   const rows = [
     { buchungsdatum: datum, beschreibung: text || ("Umbuchung an " + auf), soll: -b, haben: 0, kategorie: "Umbuchung", bank: von, umbuchung: true },
     { buchungsdatum: datum, beschreibung: text || ("Umbuchung von " + von), soll: 0, haben: b, kategorie: "Umbuchung", bank: auf, umbuchung: true },
   ];
   const { data, error } = await sb.from("transactions").insert(rows).select();
+  e.target.disabled = false;
   if (error) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; return; }
   if (data && data.length === 2) {
     await Promise.all([
@@ -2020,9 +2026,10 @@ function bankStartEdit(b) {
 
 bankForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+  const btn = e.submitter; if (btn) btn.disabled = true;
   const id = document.getElementById("bank-id").value;
   const name = document.getElementById("bank-name").value.trim();
-  if (!name) { showMsg(document.getElementById("bank-msg"), "Bitte einen Banknamen eingeben.", "error"); return; }
+  if (!name) { if (btn) btn.disabled = false; showMsg(document.getElementById("bank-msg"), "Bitte einen Banknamen eingeben.", "error"); return; }
   const payload = {
     name,
     vertragsstart: document.getElementById("bank-start").value || null,
@@ -2034,6 +2041,7 @@ bankForm.addEventListener("submit", async (e) => {
   let error;
   if (id) ({ error } = await sb.from("banks").update(payload).eq("id", id));
   else    ({ error } = await sb.from("banks").insert([payload]));
+  if (btn) btn.disabled = false;
   if (error) { showMsg(document.getElementById("bank-msg"), "Fehler: " + error.message, "error"); return; }
   bankReset();
   loadBanks();
@@ -2942,12 +2950,15 @@ immoListEl.addEventListener("click", async (e) => {
     if (error) alert("Fehler: " + error.message); else loadImmo();
     return;
   }
-  if (e.target.closest("[data-immo-save]")) {
+  const immoSaveBtn = e.target.closest("[data-immo-save]");
+  if (immoSaveBtn) {
+    immoSaveBtn.disabled = true;
     const d = readImmoCard(card); const id = d.id; delete d.id;
     const msg = card.querySelector("[data-immo-msg]");
     let error;
     if (id) ({ error } = await sb.from("immobilien").update(d).eq("id", id));
     else ({ error } = await sb.from("immobilien").insert([d]));
+    immoSaveBtn.disabled = false;
     if (error) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; return; }
     msg.textContent = "Gespeichert."; msg.style.color = "var(--green)";
     loadImmo();
@@ -3099,12 +3110,15 @@ betListEl.addEventListener("click", async (e) => {
     if (error) alert("Fehler: " + error.message); else loadBet();
     return;
   }
-  if (e.target.closest("[data-bet-save]")) {
+  const betSaveBtn = e.target.closest("[data-bet-save]");
+  if (betSaveBtn) {
+    betSaveBtn.disabled = true;
     const d = readBetCard(card); const id = d.id; delete d.id;
     const msg = card.querySelector("[data-bet-msg]");
     let error;
     if (id) ({ error } = await sb.from("beteiligungen").update(d).eq("id", id));
     else ({ error } = await sb.from("beteiligungen").insert([d]));
+    betSaveBtn.disabled = false;
     if (error) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; return; }
     msg.textContent = "Gespeichert."; msg.style.color = "var(--green)";
     loadBet();
@@ -3321,12 +3335,15 @@ pensListEl.addEventListener("click", async (e) => {
     if (error) alert("Fehler: " + error.message); else loadPens();
     return;
   }
-  if (e.target.closest("[data-pens-save]")) {
+  const pensSaveBtn = e.target.closest("[data-pens-save]");
+  if (pensSaveBtn) {
+    pensSaveBtn.disabled = true;
     const d = readPensCard(card); const id = d.id; delete d.id;
     const msg = card.querySelector("[data-pens-msg]");
     let error;
     if (id) ({ error } = await sb.from("pensionsfonds").update(d).eq("id", id));
     else ({ error } = await sb.from("pensionsfonds").insert([d]));
+    pensSaveBtn.disabled = false;
     if (error) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; return; }
     msg.textContent = "Gespeichert."; msg.style.color = "var(--green)";
     loadPens();
@@ -3536,11 +3553,12 @@ document.getElementById("csv-template-btn").addEventListener("click", () => {
 // ======================================================================
 //  CSV-Import
 // ======================================================================
-document.getElementById("csv-import-btn").addEventListener("click", () => {
+document.getElementById("csv-import-btn").addEventListener("click", (ev) => {
   const fileInput = document.getElementById("csv-file");
   const msg = document.getElementById("csv-msg");
   const file = fileInput.files[0];
   if (!file) { showMsg(msg, "Bitte zuerst eine CSV-Datei auswählen.", "error"); return; }
+  ev.target.disabled = true;
 
   Papa.parse(file, {
     header: true, delimiter: ";", skipEmptyLines: true,
@@ -3571,12 +3589,13 @@ document.getElementById("csv-import-btn").addEventListener("click", () => {
 
       showMsg(msg, `Importiere ${rows.length} Zeilen…`, "ok");
       const { error } = await sb.from("transactions").insert(rows);
+      ev.target.disabled = false;
       if (error) { showMsg(msg, "Fehler beim Import: " + error.message, "error"); return; }
       showMsg(msg, `${rows.length} Zeilen erfolgreich importiert.`, "ok");
       fileInput.value = "";
       loadData();
     },
-    error: (err) => showMsg(msg, "CSV konnte nicht gelesen werden: " + err.message, "error"),
+    error: (err) => { ev.target.disabled = false; showMsg(msg, "CSV konnte nicht gelesen werden: " + err.message, "error"); },
   });
 });
 </script>
