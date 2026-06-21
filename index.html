@@ -940,7 +940,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
 
 document.getElementById("logout-btn").addEventListener("click", async () => { await sb.auth.signOut(); });
 
-sb.auth.onAuthStateChange((_event, session) => {
+sb.auth.onAuthStateChange(async (_event, session) => {
   if (session) {
     loginView.classList.add("hidden");
     appView.classList.remove("hidden");
@@ -948,13 +948,11 @@ sb.auth.onAuthStateChange((_event, session) => {
     currentUserName = session.user.email;
     const un = document.getElementById("bank-user-name");
     if (un) un.textContent = currentUserName;
-    loadData();
-    loadPortfolio();
-    loadBanks();
-    loadImmo();
-    loadBet();
-    loadPens();
-    loadSteuer();
+    await Promise.all([
+      loadData(), loadPortfolio(), loadBanks(),
+      loadImmo(), loadBet(), loadPens(), loadSteuer(),
+    ]);
+    renderDashboard();
   } else {
     appView.classList.add("hidden");
     loginView.classList.remove("hidden");
@@ -1037,7 +1035,7 @@ function render() {
   if (typeof renderBanks === "function") renderBanks();
   renderTxOverview(viewRows);
   applyTxMode();
-  if (typeof renderDashboard === "function") renderDashboard();
+  renderDashboard();
   if (typeof renderImmoTx === "function") renderImmoTx();
   if (typeof renderGaps === "function") renderGaps();
 }
@@ -1901,7 +1899,7 @@ async function loadBanks() {
   renderTxSubmenu();
   renderPfSubmenu();
   renderDashBankFilter();
-  if (typeof renderDashboard === "function") renderDashboard();
+  renderDashboard();
 }
 
 function renderBanks() {
@@ -2119,11 +2117,11 @@ function renderDashboard() {
   Object.values(latest).forEach((r) => { const sh = userShare(r.bank); pInv += (Number(r.investiert) || 0) * sh; pWert += (Number(r.wert) || 0) * sh; });
   const pGain = pWert - pInv, pPct = pInv ? pGain / pInv * 100 : 0;
   let immoEk = 0;
-  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { immoEk += immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100); });
+  immoRows.forEach((d) => { immoEk += immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100); });
   let betVerm = 0;
-  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { betVerm += betKPIs(d).vermoegen; });
+  betRows.forEach((d) => { betVerm += betKPIs(d).vermoegen; });
   let pensWert = 0;
-  (typeof pensRows !== "undefined" ? pensRows : []).forEach((d) => { pensWert += (typeof pensCurrentWert === "function" ? pensCurrentWert(d.id) : 0); });
+  pensRows.forEach((d) => { pensWert += pensCurrentWert(d.id); });
   const networth = liquid + pWert + immoEk + betVerm + pensWert;
 
   let cfEin = 0, cfAus = 0;
@@ -2173,7 +2171,7 @@ function renderDashboard() {
   let etfGain = 0;
   Object.values(latest).forEach((r) => { const g = (Number(r.wert) || 0) - (Number(r.investiert) || 0); if (g > 0) etfGain += g * userShare(r.bank); });
   let betGain = 0;
-  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); if (g > 0) betGain += g; });
+  betRows.forEach((d) => { const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); if (g > 0) betGain += g; });
   const latSteuer = KEST * (etfGain + betGain);
   document.getElementById("kpi-lat-steuer").textContent = euro(latSteuer);
   const nwNetEl = document.getElementById("kpi-networth-net");
@@ -2204,9 +2202,9 @@ function renderDashboard() {
     const gain = ((Number(r.wert) || 0) - (Number(r.investiert) || 0)) * sh;
     avail += wert - KEST * Math.max(0, gain);
   });
-  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100); });
-  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { if ((d.bindung || "") === "langfristig") return; const v = betKPIs(d).vermoegen; const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); avail += v - KEST * Math.max(0, g); });
-  (typeof pensRows !== "undefined" ? pensRows : []).forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += pensCurrentWert(d.id); });
+  immoRows.forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100); });
+  betRows.forEach((d) => { if ((d.bindung || "") === "langfristig") return; const v = betKPIs(d).vermoegen; const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); avail += v - KEST * Math.max(0, g); });
+  pensRows.forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += pensCurrentWert(d.id); });
   const luecke = avgAus - passivM;
   document.getElementById("ff-ausgaben").textContent = euro(avgAus);
   document.getElementById("ff-passiv").textContent = euro(passivM);
@@ -2233,7 +2231,7 @@ function renderDashboard() {
   const debtPts = schuldenSeries();
   drawDebtChart(document.getElementById("dash-debt-chart"), debtPts);
   let schuldenAktuell = 0;
-  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { schuldenAktuell += (Number(d.restschuld) || 0) * ((Number(d.anteil_user) || 100) / 100); });
+  immoRows.forEach((d) => { schuldenAktuell += (Number(d.restschuld) || 0) * ((Number(d.anteil_user) || 100) / 100); });
   const schEl = document.getElementById("kpi-schulden"); if (schEl) schEl.textContent = euro(schuldenAktuell);
   const delEl = document.getElementById("kpi-schulden-delta");
   if (delEl) {
@@ -2262,9 +2260,9 @@ function renderDashBindung(portfolioLatest) {
   const bind = {};
   const add = (key, val) => { const k = (key || "").trim() || "Nicht zugeordnet"; bind[k] = (bind[k] || 0) + val; };
   Object.values(portfolioLatest || {}).forEach((r) => add(r.bindung, (Number(r.wert) || 0) * userShare(r.bank)));
-  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => add(d.bindung, immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100)));
-  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => add(d.bindung, betKPIs(d).vermoegen));
-  (typeof pensRows !== "undefined" ? pensRows : []).forEach((d) => add(d.bindung, pensCurrentWert(d.id)));
+  immoRows.forEach((d) => add(d.bindung, immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100)));
+  betRows.forEach((d) => add(d.bindung, betKPIs(d).vermoegen));
+  pensRows.forEach((d) => add(d.bindung, pensCurrentWert(d.id)));
   const order = ["kurzfristig", "mittelfristig", "langfristig", "Nicht zugeordnet"];
   const keys = order.filter((k) => bind[k] != null);
   body.innerHTML = "";
@@ -2320,9 +2318,9 @@ function renderIncomeOverview() {
   if (!el) return;
   const aktivJahr = workIncomeYear();
   let passivImmo = 0;
-  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { const k = immoKPIs(d); if (k.verm) passivImmo += (k.mieteNetto || 0) * ((Number(d.anteil_user) || 100) / 100) * 12; });
+  immoRows.forEach((d) => { const k = immoKPIs(d); if (k.verm) passivImmo += (k.mieteNetto || 0) * ((Number(d.anteil_user) || 100) / 100) * 12; });
   let passivBet = 0;
-  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { passivBet += betKPIs(d).jahresertrag; });
+  betRows.forEach((d) => { passivBet += betKPIs(d).jahresertrag; });
   drawDonut(el, [
     { label: "Arbeit (12 Mon.)", value: Math.max(0, aktivJahr), color: "#2F5DA8" },
     { label: "Immobilien (Miete/Jahr)", value: Math.max(0, passivImmo), color: "#E0A800" },
@@ -2333,8 +2331,8 @@ function renderIncomeOverview() {
 // Passives Einkommen / Monat (aktuell): Netto-Miete + Netto-Beteiligungsertrag
 function currentPassiveIncome() {
   let p = 0;
-  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { const k = immoKPIs(d); if (k.verm) p += (k.mieteNetto || 0) * ((Number(d.anteil_user) || 100) / 100); });
-  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { p += betKPIs(d).jahresertrag / 12; });
+  immoRows.forEach((d) => { const k = immoKPIs(d); if (k.verm) p += (k.mieteNetto || 0) * ((Number(d.anteil_user) || 100) / 100); });
+  betRows.forEach((d) => { p += betKPIs(d).jahresertrag / 12; });
   return p;
 }
 function monthMinus(M, k) {
@@ -2741,7 +2739,7 @@ async function loadImmo() {
   renderImmoSubmenu();
   populateImmoSelect();
   renderImmo();
-  if (typeof renderDashboard === "function") renderDashboard();
+  renderDashboard();
 }
 
 function selOpts(field, val, opts) {
@@ -2997,7 +2995,7 @@ async function loadBet() {
   if (error) { console.error(error); return; }
   betRows = data || [];
   renderBet();
-  if (typeof renderDashboard === "function") renderDashboard();
+  renderDashboard();
 }
 
 function betFieldsHTML(d) {
@@ -3181,7 +3179,7 @@ async function loadPens() {
   pensRows = pf.data || [];
   pensStand = ps.error ? [] : (ps.data || []);
   renderPens();
-  if (typeof renderDashboard === "function") renderDashboard();
+  renderDashboard();
 }
 
 function pensFieldsHTML(d) {
@@ -3409,7 +3407,7 @@ function renderSteuern() {
 
   // Mieteinnahmen + IMU
   let rentTax = 0, imuTotal = 0;
-  (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => {
+  immoRows.forEach((d) => {
     const k = immoKPIs(d); const sh = (n(d.anteil_user) || 100) / 100;
     rentTax += (k.steuerM || 0) * 12 * sh;
     imuTotal += (k.imuM || 0) * 12 * sh;
@@ -3417,7 +3415,7 @@ function renderSteuern() {
 
   // Kapitalerträge laufend (Beteiligungen)
   let zinsTaxSum = 0, divTaxSum = 0;
-  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => {
+  betRows.forEach((d) => {
     zinsTaxSum += n(d.darlehen) * n(d.zins) / 100 * KEST;
     divTaxSum += d.dividende_netto ? 0 : n(d.dividende_jahr) * KEST;
   });
@@ -3428,12 +3426,12 @@ function renderSteuern() {
   const latest = latestPortfolioMap(portfolioRows);
   Object.values(latest).forEach((r) => { const g = (n(r.wert) - n(r.investiert)) * userShare(r.bank); if (g > 0) etfGain += g; });
   let betGain = 0;
-  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { const g = n(d.marktwert) - n(d.invest_hist); if (g > 0) betGain += g; });
+  betRows.forEach((d) => { const g = n(d.marktwert) - n(d.invest_hist); if (g > 0) betGain += g; });
   const latent = KEST * (etfGain + betGain);
 
   // Absetzbare Beiträge
   let totalContrib = 0;
-  (typeof pensRows !== "undefined" ? pensRows : []).forEach((d) => { totalContrib += (n(d.eigenbeitrag) + n(d.agbeitrag)) * 12; });
+  pensRows.forEach((d) => { totalContrib += (n(d.eigenbeitrag) + n(d.agbeitrag)) * 12; });
   const absetzbar = Math.min(totalContrib, 5164.57);
   const vorteil = absetzbar * grenzF;
 
@@ -3475,7 +3473,7 @@ function renderSteuern() {
   // Mieteinnahmen-Seite
   const mb = document.getElementById("stm-body");
   if (mb) {
-    const rows = (typeof immoRows !== "undefined" ? immoRows : []).filter((d) => d.typ === "vermietung");
+    const rows = immoRows.filter((d) => d.typ === "vermietung");
     mb.innerHTML = rows.length === 0 ? `<tr><td colspan="5" class="empty">Keine vermieteten Immobilien.</td></tr>`
       : rows.map((d) => { const k = immoKPIs(d); const sh = (n(d.anteil_user) || 100) / 100; const modell = { cedolare: "Cedolare 21 %", irpef: "IRPEF", keine: "Keine" }[d.steuermodell || "cedolare"]; return `<tr><td>${esc(d.bezeichnung || "")}</td><td>${modell}</td><td class="num">${euro(n(d.bruttomiete) * 12 * sh)}</td><td class="num neg">${euro((k.steuerM || 0) * 12 * sh)}</td><td class="num neg">${euro((k.imuM || 0) * 12 * sh)}</td></tr>`; }).join("");
   }
@@ -3483,7 +3481,7 @@ function renderSteuern() {
   // Kapitalerträge-Seite
   const kb = document.getElementById("stk-body");
   if (kb) {
-    const rows = (typeof betRows !== "undefined" ? betRows : []);
+    const rows = betRows;
     kb.innerHTML = rows.length === 0 ? `<tr><td colspan="4" class="empty">Keine Beteiligungen.</td></tr>`
       : rows.map((d) => { const zb = n(d.darlehen) * n(d.zins) / 100; const db = n(d.dividende_jahr); const tax = zb * KEST + (d.dividende_netto ? 0 : db * KEST); return `<tr><td>${esc(d.name || "")}</td><td class="num">${euro(zb)}</td><td class="num">${euro(db)}</td><td class="num neg">${euro(tax)}</td></tr>`; }).join("");
   }
@@ -3498,7 +3496,7 @@ function renderSteuern() {
   setText("sta-vorteil", euro(vorteil));
   const ab = document.getElementById("sta-body");
   if (ab) {
-    const rows = (typeof pensRows !== "undefined" ? pensRows : []);
+    const rows = pensRows;
     ab.innerHTML = rows.length === 0 ? `<tr><td colspan="2" class="empty">Keine Pensionsfonds.</td></tr>`
       : rows.map((d) => `<tr><td>${esc(d.name || "")}</td><td class="num">${euro((n(d.eigenbeitrag) + n(d.agbeitrag)) * 12)}</td></tr>`).join("");
   }
