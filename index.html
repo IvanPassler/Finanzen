@@ -888,6 +888,8 @@ let activePfBank = null;  // ETF-Portfolio: null = Übersicht, sonst Bankname
 // ---------- Hilfsfunktionen ----------
 const KEST = 0.26;          // Kapitalertragsteuer IT (26 %)
 const KEST_FAKTOR = 1 - KEST; // = 0.74, für Netto-Berechnungen
+const isoDate  = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const isoMonth = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
 const euro = (n) => (n == null ? "" : Number(n).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €");
 // Zahl deutsch formatieren (für Eingabefelder), z. B. 41695.63 -> "41.695,63"
 const fmtNum = (n, dec = 2) => (n == null || n === "" ? "" : Number(n).toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: dec }));
@@ -1821,9 +1823,7 @@ async function pfBulkSave() {
 }
 document.getElementById("pf-bulk-load").addEventListener("click", pfBuildBulk);
 (function () {
-  const d = new Date();
-  document.getElementById("pf-bulk-datum").value =
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  document.getElementById("pf-bulk-datum").value = isoDate(new Date());
 })();
 
 // ======================================================================
@@ -1848,7 +1848,7 @@ function populateBankSelects() {
 }
 (function () {
   const el = document.getElementById("ub-datum");
-  if (el) { const t = new Date(); el.value = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; }
+  if (el) { el.value = isoDate(new Date()); }
 })();
 document.getElementById("ub-save").addEventListener("click", async () => {
   const datum = document.getElementById("ub-datum").value || null;
@@ -2152,7 +2152,7 @@ function renderDashboard() {
   // Ausgaben letzter Kalendermonat (unabhängig vom Zeitraumfilter)
   const now = new Date();
   const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lmKey = `${lm.getFullYear()}-${String(lm.getMonth() + 1).padStart(2, "0")}`;
+  const lmKey = isoMonth(lm);
   let ausLM = 0;
   allRows.forEach((r) => {
     if (r.umbuchung || !r.buchungsdatum || !bankSelected(r.bank || "")) return;
@@ -2180,9 +2180,9 @@ function renderDashboard() {
 
   // ---- Finanzielle Freiheit ----
   const ffNow = new Date();
-  const cmKey = `${ffNow.getFullYear()}-${String(ffNow.getMonth() + 1).padStart(2, "0")}`;
+  const cmKey = isoMonth(ffNow);
   const sD = new Date(ffNow.getFullYear(), ffNow.getMonth() - 12, 1);
-  const sKey = `${sD.getFullYear()}-${String(sD.getMonth() + 1).padStart(2, "0")}`;
+  const sKey = isoMonth(sD);
   let aus12 = 0;
   allRows.forEach((r) => {
     if (r.umbuchung || !r.buchungsdatum || !bankSelected(r.bank || "")) return;
@@ -2315,9 +2315,9 @@ function renderIncomeOverview() {
   const el = document.getElementById("dash-income");
   if (!el) return;
   const now = new Date();
-  const cmKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const cmKey = isoMonth(now);
   const sD = new Date(now.getFullYear(), now.getMonth() - 12, 1);
-  const sKey = `${sD.getFullYear()}-${String(sD.getMonth() + 1).padStart(2, "0")}`;
+  const sKey = isoMonth(sD);
   let aktivJahr = 0;
   allRows.forEach((r) => {
     if (r.umbuchung || r.immo_id || !r.buchungsdatum || !bankSelected(r.bank || "")) return;  // Miet-Einnahmen (immo_id) zählen nicht als Arbeit
@@ -2916,8 +2916,7 @@ function renderImmo() {
   list.innerHTML = rows.map(immoCardHTML).join("");
   document.getElementById("immo-empty").classList.toggle("hidden", immoRows.length > 0 || activeImmo);
   list.querySelectorAll(".immo-card").forEach((card) => recomputeImmoCard(card));
-  const t = new Date();
-  const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  const iso = isoDate(new Date());
   list.querySelectorAll("[data-immo-schuld-datum]").forEach((el) => { el.value = iso; });
   renderImmoSummary();
   applyImmoMode();
@@ -3300,8 +3299,7 @@ function renderPens() {
   list.innerHTML = pensRows.map(pensCardHTML).join("");
   document.getElementById("pens-empty").classList.toggle("hidden", pensRows.length > 0);
   list.querySelectorAll(".immo-card").forEach((card) => recomputePensCard(card));
-  const t = new Date();
-  const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  const iso = isoDate(new Date());
   list.querySelectorAll("[data-pens-stand-datum]").forEach((el) => { el.value = iso; });
   renderPensSummary();
 }
@@ -3369,9 +3367,9 @@ function irpef(income) {
 // Arbeitseinkommen der letzten 12 Monate (Transaktions-Einnahmen ohne Immobilien-Zuordnung)
 function workIncomeYear() {
   const now = new Date();
-  const cmKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const cmKey = isoMonth(now);
   const sD = new Date(now.getFullYear(), now.getMonth() - 12, 1);
-  const sKey = `${sD.getFullYear()}-${String(sD.getMonth() + 1).padStart(2, "0")}`;
+  const sKey = isoMonth(sD);
   let v = 0;
   allRows.forEach((r) => {
     if (r.umbuchung || r.immo_id || !r.buchungsdatum || !bankSelected(r.bank || "")) return;
