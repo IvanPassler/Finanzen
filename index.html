@@ -886,6 +886,8 @@ let txKKFilter = "alle";  // alle | konto | kk
 let activePfBank = null;  // ETF-Portfolio: null = Übersicht, sonst Bankname
 
 // ---------- Hilfsfunktionen ----------
+const KEST = 0.26;          // Kapitalertragsteuer IT (26 %)
+const KEST_FAKTOR = 1 - KEST; // = 0.74, für Netto-Berechnungen
 const euro = (n) => (n == null ? "" : Number(n).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €");
 // Zahl deutsch formatieren (für Eingabefelder), z. B. 41695.63 -> "41.695,63"
 const fmtNum = (n, dec = 2) => (n == null || n === "" ? "" : Number(n).toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: dec }));
@@ -2168,7 +2170,7 @@ function renderDashboard() {
   Object.values(latest).forEach((r) => { const g = (Number(r.wert) || 0) - (Number(r.investiert) || 0); if (g > 0) etfGain += g * userShare(r.bank); });
   let betGain = 0;
   (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); if (g > 0) betGain += g; });
-  const latSteuer = 0.26 * (etfGain + betGain);
+  const latSteuer = KEST * (etfGain + betGain);
   document.getElementById("kpi-lat-steuer").textContent = euro(latSteuer);
   const nwNetEl = document.getElementById("kpi-networth-net");
   const nwNet = networth - latSteuer;
@@ -2196,10 +2198,10 @@ function renderDashboard() {
     const sh = userShare(r.bank);
     const wert = (Number(r.wert) || 0) * sh;
     const gain = ((Number(r.wert) || 0) - (Number(r.investiert) || 0)) * sh;
-    avail += wert - 0.26 * Math.max(0, gain);
+    avail += wert - KEST * Math.max(0, gain);
   });
   (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100); });
-  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { if ((d.bindung || "") === "langfristig") return; const v = betKPIs(d).vermoegen; const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); avail += v - 0.26 * Math.max(0, g); });
+  (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { if ((d.bindung || "") === "langfristig") return; const v = betKPIs(d).vermoegen; const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); avail += v - KEST * Math.max(0, g); });
   (typeof pensRows !== "undefined" ? pensRows : []).forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += pensCurrentWert(d.id); });
   const luecke = avgAus - passivM;
   document.getElementById("ff-ausgaben").textContent = euro(avgAus);
@@ -2383,7 +2385,7 @@ function wealthSeries() {
     let aus = 0;
     allRows.forEach((r) => { if (r.umbuchung || !r.buchungsdatum || !bankSelected(r.bank || "")) return; const m = r.buchungsdatum.slice(0, 7); if (m < startKey || m > M) return; aus += (Number(r.soll) || 0) * userShare(r.bank || ""); });
     const avgAus = Math.abs(aus) / 12;
-    const avail = cash + (val - 0.26 * Math.max(0, gain));
+    const avail = cash + (val - KEST * Math.max(0, gain));
     const luecke = avgAus - passiv;
     const freiheit = luecke > 0 ? avail / luecke : 0;
     return { m: M, cash, invested: inv, gain, value: val, freiheit };
@@ -2978,8 +2980,8 @@ let betRows = [];
 function betKPIs(d) {
   const n = (v) => Number(v) || 0;
   const zinsBrutto = n(d.darlehen) * n(d.zins) / 100;
-  const zinsNetto = zinsBrutto * 0.74;          // 26% Kapitalertragsteuer (IT)
-  const divNetto = d.dividende_netto ? n(d.dividende_jahr) : n(d.dividende_jahr) * 0.74;
+  const zinsNetto = zinsBrutto * KEST_FAKTOR;
+  const divNetto = d.dividende_netto ? n(d.dividende_jahr) : n(d.dividende_jahr) * KEST_FAKTOR;
   const vermoegen = n(d.marktwert) + n(d.darlehen);
   const ausschuettend = (d.zins_modus || "ausschuettend") === "ausschuettend";
   const jahresertrag = divNetto + (ausschuettend ? zinsNetto : 0);
@@ -3409,8 +3411,8 @@ function renderSteuern() {
   // Kapitalerträge laufend (Beteiligungen)
   let zinsTaxSum = 0, divTaxSum = 0;
   (typeof betRows !== "undefined" ? betRows : []).forEach((d) => {
-    zinsTaxSum += n(d.darlehen) * n(d.zins) / 100 * 0.26;
-    divTaxSum += d.dividende_netto ? 0 : n(d.dividende_jahr) * 0.26;
+    zinsTaxSum += n(d.darlehen) * n(d.zins) / 100 * KEST;
+    divTaxSum += d.dividende_netto ? 0 : n(d.dividende_jahr) * KEST;
   });
   const kapLaufend = zinsTaxSum + divTaxSum;
 
@@ -3425,7 +3427,7 @@ function renderSteuern() {
   Object.values(latest).forEach((r) => { const g = (n(r.wert) - n(r.investiert)) * userShare(r.bank); if (g > 0) etfGain += g; });
   let betGain = 0;
   (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { const g = n(d.marktwert) - n(d.invest_hist); if (g > 0) betGain += g; });
-  const latent = 0.26 * (etfGain + betGain);
+  const latent = KEST * (etfGain + betGain);
 
   // Absetzbare Beiträge
   let totalContrib = 0;
@@ -3481,7 +3483,7 @@ function renderSteuern() {
   if (kb) {
     const rows = (typeof betRows !== "undefined" ? betRows : []);
     kb.innerHTML = rows.length === 0 ? `<tr><td colspan="4" class="empty">Keine Beteiligungen.</td></tr>`
-      : rows.map((d) => { const zb = n(d.darlehen) * n(d.zins) / 100; const db = n(d.dividende_jahr); const tax = zb * 0.26 + (d.dividende_netto ? 0 : db * 0.26); return `<tr><td>${esc(d.name || "")}</td><td class="num">${euro(zb)}</td><td class="num">${euro(db)}</td><td class="num neg">${euro(tax)}</td></tr>`; }).join("");
+      : rows.map((d) => { const zb = n(d.darlehen) * n(d.zins) / 100; const db = n(d.dividende_jahr); const tax = zb * KEST + (d.dividende_netto ? 0 : db * KEST); return `<tr><td>${esc(d.name || "")}</td><td class="num">${euro(zb)}</td><td class="num">${euro(db)}</td><td class="num neg">${euro(tax)}</td></tr>`; }).join("");
   }
   setText("stk-etf-gain", euro(etfGain));
   setText("stk-bet-gain", euro(betGain));
