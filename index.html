@@ -1469,12 +1469,7 @@ function renderPortfolio() {
   document.getElementById("pf-empty").classList.toggle("hidden", portfolioRows.length > 0);
 
   // Summen: jeweils neuester Stand pro Bank + Position
-  const latest = {};
-  rows.forEach((r) => {
-    const key = (r.bank || "") + "|" + (r.bezeichnung || "");
-    const stamp = (r.datum || "") + (r.created_at || "");
-    if (!latest[key] || stamp >= latest[key].stamp) latest[key] = { ...r, stamp };
-  });
+  const latest = latestPortfolioMap(rows);
   let inv = 0, wert = 0;
   Object.values(latest).forEach((r) => { inv += Number(r.investiert) || 0; wert += Number(r.wert) || 0; });
   const gew = wert - inv;
@@ -1704,6 +1699,20 @@ function drawChart(el, points) {
   svg.addEventListener("mouseleave", hide);
 }
 
+// Gibt Map zurück: "bank|bezeichnung" → neuester Eintrag aus rows.
+// bankFilterFn(bank) optionaler Filter (z.B. bankSelected).
+function latestPortfolioMap(rows, bankFilterFn) {
+  const latest = {};
+  rows.forEach((r) => {
+    const bank = r.bank || "";
+    if (bankFilterFn && !bankFilterFn(bank)) return;
+    const key = bank + "|" + (r.bezeichnung || "");
+    const st = (r.datum || "") + (r.created_at || "");
+    if (!latest[key] || st >= latest[key].st) latest[key] = { ...r, st, bank };
+  });
+  return latest;
+}
+
 // ---- Portfolio-Formular ----
 const pfForm = document.getElementById("pf-form");
 function pfStartEdit(r) {
@@ -1909,13 +1918,7 @@ function renderBanks() {
     const lastDate = tx.reduce((m, r) => (r.buchungsdatum && r.buchungsdatum > m ? r.buchungsdatum : m), "");
     let pfCell = "—";
     if (b.hat_portfolio) {
-      const latest = {};
-      portfolioRows.forEach((r) => {
-        if ((r.bank || "") !== b.name) return;
-        const k = r.bezeichnung || "";
-        const st = (r.datum || "") + (r.created_at || "");
-        if (!latest[k] || st >= latest[k].st) latest[k] = { ...r, st };
-      });
+      const latest = latestPortfolioMap(portfolioRows, (bank) => bank === b.name);
       let inv = 0, wert = 0;
       Object.values(latest).forEach((r) => { inv += Number(r.investiert) || 0; wert += Number(r.wert) || 0; });
       const gew = wert - inv;
@@ -2112,14 +2115,7 @@ function renderDashboard() {
     liquid += (start + txSum) * userShare(b.name);
   });
   let pInv = 0, pWert = 0;
-  const latest = {};
-  portfolioRows.forEach((r) => {
-    const bank = r.bank || "";
-    if (!bankSelected(bank)) return;
-    const key = bank + "|" + (r.bezeichnung || "");
-    const st = (r.datum || "") + (r.created_at || "");
-    if (!latest[key] || st >= latest[key].st) latest[key] = { ...r, st, bank };
-  });
+  const latest = latestPortfolioMap(portfolioRows, bankSelected);
   Object.values(latest).forEach((r) => { const sh = userShare(r.bank); pInv += (Number(r.investiert) || 0) * sh; pWert += (Number(r.wert) || 0) * sh; });
   const pGain = pWert - pInv, pPct = pInv ? pGain / pInv * 100 : 0;
   let immoEk = 0;
@@ -3429,12 +3425,7 @@ function renderSteuern() {
 
   // Latente Steuer (ETF + Beteiligungen Buchgewinne)
   let etfGain = 0;
-  const latest = {};
-  (typeof portfolioRows !== "undefined" ? portfolioRows : []).forEach((r) => {
-    const bank = r.bank || ""; const key = bank + "|" + (r.bezeichnung || "");
-    const st = (r.datum || "") + (r.created_at || "");
-    if (!latest[key] || st >= latest[key].st) latest[key] = { ...r, st, bank };
-  });
+  const latest = latestPortfolioMap(portfolioRows);
   Object.values(latest).forEach((r) => { const g = (n(r.wert) - n(r.investiert)) * userShare(r.bank); if (g > 0) etfGain += g; });
   let betGain = 0;
   (typeof betRows !== "undefined" ? betRows : []).forEach((d) => { const g = n(d.marktwert) - n(d.invest_hist); if (g > 0) betGain += g; });
