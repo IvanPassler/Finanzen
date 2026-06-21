@@ -143,6 +143,19 @@ CREATE TABLE public.pensionsfonds (
 
 
 --
+-- Name: pension_stand; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pension_stand (
+    id         uuid DEFAULT gen_random_uuid() NOT NULL,
+    pension_id uuid NOT NULL,
+    datum      date,
+    wert       numeric,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+--
 -- Name: portfolio; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -235,6 +248,14 @@ ALTER TABLE ONLY public.pensionsfonds
 
 
 --
+-- Name: pension_stand pension_stand_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pension_stand
+    ADD CONSTRAINT pension_stand_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: portfolio portfolio_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -312,6 +333,17 @@ ALTER TABLE ONLY public.immobilien
 
 ALTER TABLE ONLY public.pensionsfonds
     ADD CONSTRAINT pensionsfonds_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id);
+
+
+--
+-- Name: pension_stand pension_stand_pension_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pension_stand
+    ADD CONSTRAINT pension_stand_pension_id_fkey
+    FOREIGN KEY (pension_id)
+    REFERENCES public.pensionsfonds(id)
+    ON DELETE CASCADE;
 
 
 --
@@ -564,6 +596,60 @@ CREATE POLICY pf_select_own ON public.pensionsfonds FOR SELECT USING ((auth.uid(
 --
 
 CREATE POLICY pf_update_own ON public.pensionsfonds FOR UPDATE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: pension_stand; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.pension_stand ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: pension_stand ps_delete_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ps_delete_own ON public.pension_stand FOR DELETE
+    USING (EXISTS (
+        SELECT 1 FROM public.pensionsfonds
+        WHERE id = pension_stand.pension_id
+          AND user_id = auth.uid()
+    ));
+
+
+--
+-- Name: pension_stand ps_insert_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ps_insert_own ON public.pension_stand FOR INSERT
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.pensionsfonds
+        WHERE id = pension_stand.pension_id
+          AND user_id = auth.uid()
+    ));
+
+
+--
+-- Name: pension_stand ps_select_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ps_select_own ON public.pension_stand FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.pensionsfonds
+        WHERE id = pension_stand.pension_id
+          AND user_id = auth.uid()
+    ));
+
+
+--
+-- Name: pension_stand ps_update_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ps_update_own ON public.pension_stand FOR UPDATE
+    USING (EXISTS (
+        SELECT 1 FROM public.pensionsfonds
+        WHERE id = pension_stand.pension_id
+          AND user_id = auth.uid()
+    ));
 
 
 --
