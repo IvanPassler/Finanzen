@@ -2717,9 +2717,8 @@ function immoKPIs(d) {
   const effMiete = verm ? n(d.bruttomiete) * (1 - leer / 100) : 0;
   const neben = n(d.condominio) + n(d.versicherung) + n(d.instandhaltung);
   const imuM = d.imu_faellig ? n(d.imu_jahr) / 12 : 0;
-  const mieteIstBrutto = d.miete_brutto !== false;   // Italien: Miete kann netto (Steuer schon weg) oder brutto sein
   let steuerM = 0;
-  if (verm && mieteIstBrutto) {
+  if (verm) {
     if (d.steuermodell === "cedolare") steuerM = effMiete * 0.21;
     else if (d.steuermodell === "irpef") steuerM = Math.max(0, effMiete - neben) * (n(d.grenzsteuersatz) / 100);
   }
