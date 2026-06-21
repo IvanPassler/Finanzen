@@ -2314,17 +2314,7 @@ function renderDashCat() {
 function renderIncomeOverview() {
   const el = document.getElementById("dash-income");
   if (!el) return;
-  const now = new Date();
-  const cmKey = isoMonth(now);
-  const sD = new Date(now.getFullYear(), now.getMonth() - 12, 1);
-  const sKey = isoMonth(sD);
-  let aktivJahr = 0;
-  allRows.forEach((r) => {
-    if (r.umbuchung || r.immo_id || !r.buchungsdatum || !bankSelected(r.bank || "")) return;  // Miet-Einnahmen (immo_id) zählen nicht als Arbeit
-    const m = String(r.buchungsdatum).slice(0, 7);
-    if (m < sKey || m >= cmKey) return;
-    aktivJahr += (Number(r.haben) || 0) * userShare(r.bank || "");
-  });
+  const aktivJahr = workIncomeYear();
   let passivImmo = 0;
   (typeof immoRows !== "undefined" ? immoRows : []).forEach((d) => { const k = immoKPIs(d); if (k.verm) passivImmo += (k.mieteNetto || 0) * ((Number(d.anteil_user) || 100) / 100) * 12; });
   let passivBet = 0;
