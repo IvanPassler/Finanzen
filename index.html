@@ -1682,7 +1682,7 @@ function drawChart(el, points) {
     const rect = svg.getBoundingClientRect();
     const gew = p.val - p.inv;
     const pct = p.inv ? (gew / p.inv) * 100 : 0;
-    const gewColor = gew >= 0 ? "#2E7D32" : "#C62828";
+    const gewColor = gew >= 0 ? "var(--green)" : "var(--red)";
     tip.innerHTML = `<b>${fmtD(p.date)}</b><br>Gesamtwert: <b>${euro(p.val)}</b><br>Investiert: ${euro(p.inv)}<br>Gewinn: <span style="color:${gewColor}">${euro(gew)} (${pct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %)</span>`;
     let left = (gx / W) * rect.width;
     left = Math.max(70, Math.min(rect.width - 70, left));
@@ -2136,7 +2136,7 @@ function renderDashboard() {
   document.getElementById("kpi-portfolio").textContent = euro(pWert);
   const gainEl = document.getElementById("kpi-portfolio-gain");
   gainEl.textContent = pWert ? `Gewinn ${euro(pGain)} (${pPct.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %)` : "";
-  gainEl.style.color = pGain >= 0 ? "#2E7D32" : "#C62828";
+  gainEl.style.color = pGain >= 0 ? "var(--green)" : "var(--red)";
   const einEl = document.getElementById("kpi-ein");
   if (einEl) einEl.textContent = euro(cfEin);
   const cfEl = document.getElementById("kpi-cashflow");
