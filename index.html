@@ -2676,7 +2676,7 @@ function applyImmoMode() {
 
 function renderImmoTx() {
   if (!activeImmo) return;
-  const rows = allRows.filter((r) => r.immo_id === activeImmo);
+  const rows = allRows.filter((r) => r.immo_id === activeImmo && inRange(r));
   let ein = 0, aus = 0;
   rows.forEach((r) => { ein += Number(r.haben) || 0; aus += Number(r.soll) || 0; });
   document.getElementById("immo-tx-ein").textContent = euro(ein);
