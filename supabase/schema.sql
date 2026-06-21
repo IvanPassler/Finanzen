@@ -1,6 +1,19 @@
 --
 -- PostgreSQL database dump
 --
+-- Wichtige Design-Entscheidungen (nicht aus dem Schema selbst ableitbar):
+--
+-- 1. transactions.bank und portfolio.bank sind TEXT, kein FK auf banks.id.
+--    Verknüpfung erfolgt via Stringvergleich (r.bank === b.name in JS).
+--    Migration zu FK geplant (IMPROVEMENT_PLAN Step 17 / C17).
+--
+-- 2. pension_stand hat kein eigenes user_id-Feld. RLS-Zugang erfolgt per
+--    JOIN zu pensionsfonds.user_id (JOIN-basierte Policies).
+--
+-- 3. immobilien.restschuld ist denormalisiert: Spiegel des neuesten
+--    immo_schuld-Eintrags. Wird beim Speichern/Löschen eines Schuld-Stands
+--    synchron aktualisiert.
+--
 
 \restrict bxBEDreS3hdaTINMkXgVjXj69B8gLqmr24RyGy6NVOQNqQlYvOgTFr4lpJKs0MT
 
