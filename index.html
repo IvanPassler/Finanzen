@@ -2946,8 +2946,14 @@ immoListEl.addEventListener("click", async (e) => {
   }
   const schuldDel = e.target.closest("[data-immo-schuld-del]");
   if (schuldDel) {
-    const { error } = await sb.from("immo_schuld").delete().eq("id", schuldDel.getAttribute("data-immo-schuld-del"));
-    if (error) alert("Fehler: " + error.message); else loadImmo();
+    const delId = schuldDel.getAttribute("data-immo-schuld-del");
+    const immoId = card.getAttribute("data-id");
+    const { error } = await sb.from("immo_schuld").delete().eq("id", delId);
+    if (error) { alert("Fehler: " + error.message); return; }
+    const remaining = immoSchuldHistory(immoId).filter((s) => s.id !== delId);
+    const newRestschuld = remaining.length > 0 ? Number(remaining[remaining.length - 1].restschuld) : null;
+    await sb.from("immobilien").update({ restschuld: newRestschuld }).eq("id", immoId);
+    loadImmo();
     return;
   }
   const immoSaveBtn = e.target.closest("[data-immo-save]");
