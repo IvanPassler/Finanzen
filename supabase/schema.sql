@@ -63,7 +63,8 @@ CREATE TABLE public.banks (
     saldo_start numeric,
     eigentuemer jsonb DEFAULT '[]'::jsonb,
     created_at timestamp with time zone DEFAULT now(),
-    hat_kreditkarte boolean DEFAULT false
+    hat_kreditkarte boolean DEFAULT false,
+    im_ausland boolean DEFAULT false
 );
 
 
@@ -131,7 +132,8 @@ CREATE TABLE public.immobilien (
     anteil_user numeric DEFAULT 100,
     created_at timestamp with time zone DEFAULT now(),
     bindung text,
-    kaufnebenkosten numeric
+    kaufnebenkosten numeric,
+    erstwohnsitz boolean DEFAULT false
 );
 
 
