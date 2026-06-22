@@ -498,13 +498,16 @@
     <section id="page-steuer-einkommen" class="hidden">
       <div class="panel">
         <h2>Einkommensteuer (IRPEF)</h2>
-        <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Vereinfachte Schätzung auf Basis deines Arbeitseinkommens der letzten 12 Monate (Transaktions-Einnahmen ohne Immobilien-Zuordnung), ohne Abzüge/Detrazioni. Stufen 2026: 23 % bis 28.000 €, 33 % bis 50.000 €, 43 % darüber.</p>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Vereinfachte Schätzung auf Basis deines Arbeitseinkommens der letzten 12 Monate (Transaktions-Einnahmen ohne Immobilien-Zuordnung), ohne Abzüge/Detrazioni. Stufen 2026: 23 % bis 28.000 €, 33 % bis 50.000 €, 43 % darüber. Inkl. Addizionale regionale + comunale.</p>
+        <!-- Stufen-Grafik -->
+        <div id="ste-stufengrafik" style="margin-bottom:20px"></div>
         <div class="cards cards-4" style="margin-bottom:16px">
           <div class="stat"><div class="k">Arbeitseinkommen / Jahr</div><div class="v" id="ste-income">–</div></div>
-          <div class="stat"><div class="k">IRPEF geschätzt</div><div class="v neg" id="ste-tax">–</div></div>
+          <div class="stat"><div class="k">IRPEF + Addizionale gesamt</div><div class="v neg" id="ste-tax">–</div></div>
           <div class="stat"><div class="k">Effektiver Steuersatz</div><div class="v" id="ste-rate">–</div></div>
           <div class="stat"><div class="k">Netto (vereinfacht)</div><div class="v pos" id="ste-net">–</div></div>
         </div>
+        <div id="ste-satz-info" style="font-size:13px;margin-bottom:14px;color:var(--muted)"></div>
         <div style="overflow-x:auto"><table>
           <thead><tr><th>Stufe</th><th style="text-align:right">Betrag</th><th style="text-align:right">Satz</th><th style="text-align:right">Steuer</th></tr></thead>
           <tbody id="ste-body"></tbody>
@@ -3443,6 +3446,49 @@ function irpef(income) {
   if (i > 50000) t += (i - 50000) * 0.43;
   return t;
 }
+function renderIRPEFGrafik(einkommen, addizR, addizK) {
+  const el = document.getElementById("ste-stufengrafik");
+  if (!el) return;
+  const i = Math.max(0, einkommen);
+  if (i === 0) { el.innerHTML = `<div style="color:var(--muted);font-size:13px">Kein Einkommen erfasst.</div>`; return; }
+
+  // Stufenanteile
+  const s1 = Math.min(i, 28000);
+  const s2 = i > 28000 ? Math.min(i, 50000) - 28000 : 0;
+  const s3 = i > 50000 ? i - 50000 : 0;
+  const luft = i < 50000 ? (i < 28000 ? 28000 - i : 50000 - i) : 0;
+  const grenze = Math.max(i * 1.1, 50000);  // Skala: mindestens 50k, sonst 110% des Einkommens
+
+  const pct = (v) => (v / grenze * 100).toFixed(1) + "%";
+  const colors = { s1: "#4e8ef7", s2: "#f59e0b", s3: "#ef4444", luft: "var(--border)", rest: "var(--panel2)" };
+
+  const grenzSatz = i <= 28000 ? 23 : i <= 50000 ? 33 : 43;
+  const avgSatz   = i > 0 ? ((irpef(i) + i * (addizR + addizK)) / i * 100) : 0;
+
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">
+      0 € <span style="float:right">${euro(Math.min(i, 50000))}</span>
+    </div>
+    <div style="display:flex;height:28px;border-radius:6px;overflow:hidden;background:var(--panel2)">
+      ${s1 > 0 ? `<div style="width:${pct(s1)};background:${colors.s1};display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:600" title="23 % auf ${euro(s1)}">23 %</div>` : ""}
+      ${s2 > 0 ? `<div style="width:${pct(s2)};background:${colors.s2};display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:600" title="33 % auf ${euro(s2)}">33 %</div>` : ""}
+      ${s3 > 0 ? `<div style="width:${pct(s3)};background:${colors.s3};display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:600" title="43 % auf ${euro(s3)}">43 %</div>` : ""}
+      ${luft > 0 ? `<div style="width:${pct(luft)};opacity:0.3" title="Luft bis nächste Stufe: ${euro(luft)}"></div>` : ""}
+    </div>
+    <div style="font-size:12px;margin-top:6px;display:flex;gap:16px;flex-wrap:wrap">
+      <span style="color:${colors.s1}">■ 23 % (bis 28.000 €)</span>
+      <span style="color:${colors.s2}">■ 33 % (28–50.000 €)</span>
+      <span style="color:${colors.s3}">■ 43 % (über 50.000 €)</span>
+    </div>`;
+
+  const si = document.getElementById("ste-satz-info");
+  if (si) {
+    const luftText = i < 28000 ? ` · Luft bis 33%-Stufe: ${euro(28000 - i)}`
+      : i < 50000 ? ` · Luft bis 43%-Stufe: ${euro(50000 - i)}` : "";
+    si.textContent = `Grenzsteuersatz: ${grenzSatz} %   ·   Ø-Satz (inkl. Addiz.): ${fmtNum(avgSatz, 1)} %${luftText}`;
+  }
+}
+
 // Einkommens-Transaktionen (ist_einkommen=true) laufendes Jahr — präzise Ist-Berechnung
 function incomeYearTagged() {
   const yearStart = new Date().getFullYear() + "-01-01";
@@ -3610,6 +3656,7 @@ function renderSteuern() {
   ]);
 
   // Einkommen-Seite
+  renderIRPEFGrafik(workInc, addizR, addizK);
   setText("ste-income", euro(workInc));
   setText("ste-tax", euro(incomeTax));
   setText("ste-rate", workInc > 0 ? pctDE(incomeTax / workInc * 100) : "–");
