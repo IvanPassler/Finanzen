@@ -537,6 +537,13 @@
         <div class="row">
           <div><label>Persönlicher Grenzsteuersatz (%)</label><input type="text" inputmode="decimal" id="set-grenz" placeholder="z. B. 35" /></div>
           <div><label>Geleistete Vorauszahlungen / Jahr (€)</label><input type="text" inputmode="decimal" id="set-voraus" /></div>
+          <div><label>Geplantes Jahreseinkommen (€, optional)</label><input type="text" inputmode="decimal" id="set-jahreseink" placeholder="Leer = Hochrechnung aus Transaktionen" /></div>
+        </div>
+        <h3 style="margin:18px 0 8px;font-size:14px;font-weight:600">Regionale/kommunale Zuschläge (Addizionale)</h3>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 10px">Werden auf die IRPEF-Bemessungsgrundlage aufgeschlagen. Satz je nach Wohnsitz-Gemeinde. Defaults: 1,23 % / 0,80 %.</p>
+        <div class="row">
+          <div><label>Addizionale regionale (%)</label><input type="text" inputmode="decimal" id="set-addiz-reg" placeholder="1,23" /></div>
+          <div><label>Addizionale comunale (%)</label><input type="text" inputmode="decimal" id="set-addiz-kom" placeholder="0,80" /></div>
         </div>
         <div class="actions" style="margin-top:14px">
           <button id="set-save">Speichern</button>
@@ -3428,6 +3435,9 @@ async function loadSteuer() {
   steuerSettings = (!error && data && data[0]) ? data[0] : {};
   const g = document.getElementById("set-grenz"); if (g) g.value = steuerSettings.grenzsteuersatz != null ? fmtNum(steuerSettings.grenzsteuersatz) : "23";
   const vz = document.getElementById("set-voraus"); if (vz) vz.value = steuerSettings.vorauszahlung != null ? fmtNum(steuerSettings.vorauszahlung) : "";
+  const je = document.getElementById("set-jahreseink"); if (je) je.value = steuerSettings.zu_versteuerndes_einkommen != null ? fmtNum(steuerSettings.zu_versteuerndes_einkommen) : "";
+  const ar = document.getElementById("set-addiz-reg"); if (ar) ar.value = fmtNum(steuerSettings.addizionale_regionale ?? 1.23);
+  const ak = document.getElementById("set-addiz-kom"); if (ak) ak.value = fmtNum(steuerSettings.addizionale_comunale ?? 0.8);
   renderSteuern();
 }
 
@@ -3437,9 +3447,13 @@ function renderSteuern() {
   const grenzF = grenz / 100;
   const n = (v) => Number(v) || 0;
 
-  // Einkommensteuer
+  // Addizionale-Sätze (regional + kommunal)
+  const addizR = (steuerSettings.addizionale_regionale ?? 1.23) / 100;
+  const addizK = (steuerSettings.addizionale_comunale ?? 0.8) / 100;
+
+  // Einkommensteuer (IRPEF + Addizionale)
   const workInc = workIncomeYear();
-  const incomeTax = irpef(workInc);
+  const incomeTax = irpef(workInc) + workInc * (addizR + addizK);
 
   // Mieteinnahmen + IMU
   let rentTax = 0, imuTotal = 0;
@@ -3502,8 +3516,11 @@ function renderSteuern() {
   if (eb) {
     const i = Math.max(0, workInc);
     const b1 = Math.min(i, 28000), b2 = i > 28000 ? Math.min(i, 50000) - 28000 : 0, b3 = i > 50000 ? i - 50000 : 0;
+    const irpefOnly = irpef(i);
+    const addizTotal = i * (addizR + addizK);
     eb.innerHTML = [["bis 28.000 €", b1, 23], ["28.000–50.000 €", b2, 33], ["über 50.000 €", b3, 43]]
-      .map((r) => `<tr><td>${r[0]}</td><td class="num">${euro(r[1])}</td><td class="num">${r[2]} %</td><td class="num neg">${euro(r[1] * r[2] / 100)}</td></tr>`).join("");
+      .map((r) => `<tr><td>${r[0]}</td><td class="num">${euro(r[1])}</td><td class="num">${r[2]} %</td><td class="num neg">${euro(r[1] * r[2] / 100)}</td></tr>`).join("")
+      + `<tr style="border-top:1px solid var(--border);color:var(--muted)"><td>Addizionale reg. + kom.</td><td class="num">${euro(i)}</td><td class="num">${fmtNum((addizR + addizK) * 100, 2)} %</td><td class="num neg">${euro(addizTotal)}</td></tr>`;
   }
 
   // Mieteinnahmen-Seite
@@ -3548,10 +3565,19 @@ function renderStBreakdown(arr) {
 }
 
 document.getElementById("set-save").addEventListener("click", async () => {
-  const grenz = numDE(document.getElementById("set-grenz").value);
+  const grenz  = numDE(document.getElementById("set-grenz").value);
   const voraus = numDE(document.getElementById("set-voraus").value);
+  const jahreseink = numDE(document.getElementById("set-jahreseink").value);
+  const addizReg = numDE(document.getElementById("set-addiz-reg").value);
+  const addizKom = numDE(document.getElementById("set-addiz-kom").value);
   const msg = document.getElementById("set-msg");
-  const payload = { grenzsteuersatz: grenz, vorauszahlung: voraus };
+  const payload = {
+    grenzsteuersatz: grenz,
+    vorauszahlung: voraus,
+    zu_versteuerndes_einkommen: jahreseink != null && !isNaN(jahreseink) ? jahreseink : null,
+    addizionale_regionale: addizReg != null && !isNaN(addizReg) ? addizReg : 1.23,
+    addizionale_comunale:  addizKom != null && !isNaN(addizKom) ? addizKom : 0.8,
+  };
   let error;
   if (steuerSettings && steuerSettings.id) ({ error } = await sb.from("steuer_einstellungen").update(payload).eq("id", steuerSettings.id));
   else ({ error } = await sb.from("steuer_einstellungen").insert([payload]));
