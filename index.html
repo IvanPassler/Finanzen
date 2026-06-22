@@ -487,7 +487,14 @@
         <div class="stat"><div class="k">Absetzbar – Steuervorteil</div><div class="v pos" id="st-vorteil">–</div></div>
       </div>
       <div class="cards cards-4">
+        <div class="stat"><div class="k">Bollo Konten (34,20 € / Konto)</div><div class="v neg" id="st-bollo-konten">–</div></div>
+        <div class="stat"><div class="k">Cedolare Secca (Mieteinnahmen)</div><div class="v neg" id="st-cedolare">–</div></div>
+        <div class="stat"><div class="k">Pensionsfonds-Ertragsteuer (20 %)</div><div class="v neg" id="st-pens-ertrag">–</div></div>
         <div class="stat"><div class="k">Differenz zu Vorauszahlung</div><div class="v" id="st-diff">–</div></div>
+      </div>
+      <div class="cards cards-4" id="st-row-ausland" style="display:none">
+        <div class="stat"><div class="k">IVAFE (Auslandsdepot / -konto)</div><div class="v neg" id="st-ivafe">–</div></div>
+        <div class="stat"><div class="k">IVIE (Auslandsimmobilien)</div><div class="v neg" id="st-ivie">–</div></div>
       </div>
       <div class="panel">
         <h2>Steuerlast nach Art (laufend)</h2>
@@ -674,7 +681,7 @@
               <option value="ja">Ja – für IRPEF-Berechnung verwenden</option>
             </select>
           </div>
-          <div id="f-einkommen-detail" style="display:none;display:flex;flex-direction:column;gap:8px">
+          <div id="f-einkommen-detail" style="display:none;flex-direction:column;gap:8px">
             <div class="row" style="margin:0">
               <div><label style="font-size:12px">Einkommensart</label>
                 <select id="f-einkommensart">
@@ -850,6 +857,9 @@
             </div>
             <div><label>Hat Kreditkarte</label>
               <select id="bank-kreditkarte"><option value="nein">Nein</option><option value="ja">Ja</option></select>
+            </div>
+            <div><label>Konto/Depot im Ausland (IVAFE)</label>
+              <select id="bank-im-ausland"><option value="nein">Nein</option><option value="ja">Ja</option></select>
             </div>
           </div>
           <div style="margin-top:16px">
@@ -1436,7 +1446,7 @@ function updateEinkommenBlock() {
   block.style.display = haben > 0 ? "" : "none";
   const istEink = document.getElementById("f-ist-einkommen").value === "ja";
   const detail = document.getElementById("f-einkommen-detail");
-  if (detail) detail.style.display = istEink ? "" : "none";
+  if (detail) detail.style.display = istEink ? "flex" : "none";
   const affittoHint = document.getElementById("f-affitto-hint");
   if (affittoHint) {
     const einkommensart = document.getElementById("f-einkommensart").value;
@@ -2121,6 +2131,7 @@ function bankStartEdit(b) {
   document.getElementById("bank-saldo").value = fmtNum(b.saldo_start);
   document.getElementById("bank-portfolio").value = b.hat_portfolio ? "ja" : "nein";
   document.getElementById("bank-kreditkarte").value = b.hat_kreditkarte ? "ja" : "nein";
+  document.getElementById("bank-im-ausland").value = b.im_ausland ? "ja" : "nein";
   document.getElementById("bank-owners").innerHTML = "";
   const ow = Array.isArray(b.eigentuemer) ? b.eigentuemer : [];
   if (ow.length > 0) { ow.forEach((o) => addOwnerRow(o.name, o.anteil)); bankOwnersShowEditor(true); }
@@ -2143,6 +2154,7 @@ bankForm.addEventListener("submit", async (e) => {
     saldo_start: numDE(document.getElementById("bank-saldo").value),
     hat_portfolio: document.getElementById("bank-portfolio").value === "ja",
     hat_kreditkarte: document.getElementById("bank-kreditkarte").value === "ja",
+    im_ausland: document.getElementById("bank-im-ausland").value === "ja",
     eigentuemer: document.getElementById("bank-owner-editor").classList.contains("hidden") ? [] : readOwners(),
   };
   let error;
@@ -2856,6 +2868,7 @@ function immoKPIs(d) {
   let steuerM = 0;
   if (verm) {
     if (d.steuermodell === "cedolare") steuerM = effMiete * 0.21;
+    else if (d.steuermodell === "cedolare_concordato") steuerM = effMiete * 0.10;
     else if (d.steuermodell === "irpef") steuerM = Math.max(0, effMiete - neben) * (n(d.grenzsteuersatz) / 100);
   }
   const mieteNetto = verm ? (effMiete - neben - imuM - steuerM) : 0;
@@ -2935,8 +2948,10 @@ function immoFieldsHTML(d) {
         <div><label>Condominio/Monat (€)</label><input type="text" inputmode="decimal" data-f="condominio" value="${v("condominio")}" /></div>
         <div><label>Versicherung/Monat (€)</label><input type="text" inputmode="decimal" data-f="versicherung" value="${v("versicherung")}" /></div>
         <div><label>Instandhaltung/Monat (€)</label><input type="text" inputmode="decimal" data-f="instandhaltung" value="${v("instandhaltung")}" /></div>
-        <div data-vermiet><label>Steuermodell</label><select data-f="steuermodell">${selOpts("steuermodell", d.steuermodell, [["cedolare", "Cedolare Secca 21%"], ["irpef", "Ordentlich (IRPEF)"], ["keine", "Keine"]])}</select></div>
+        <div data-vermiet><label>Steuermodell</label><select data-f="steuermodell">${selOpts("steuermodell", d.steuermodell, [["cedolare", "Cedolare Secca 21 %"], ["cedolare_concordato", "Cedolare concordato 10 %"], ["irpef", "Ordentlich (IRPEF)"], ["keine", "Keine"]])}</select></div>
         <div data-irpef><label>Grenzsteuersatz (%)</label><input type="text" inputmode="decimal" data-f="grenzsteuersatz" value="${d.grenzsteuersatz != null ? fmtNum(d.grenzsteuersatz) : "23"}" /></div>
+        <div><label>Erstwohnsitz (IMU-befreit)</label><select data-f="erstwohnsitz"><option value="nein" ${!d.erstwohnsitz ? "selected" : ""}>Nein</option><option value="ja" ${d.erstwohnsitz ? "selected" : ""}>Ja</option></select></div>
+        <div><label>Immobilie im Ausland (IVIE)</label><select data-f="im_ausland_immo"><option value="nein" ${!d.im_ausland ? "selected" : ""}>Nein</option><option value="ja" ${d.im_ausland ? "selected" : ""}>Ja</option></select></div>
         <div><label>IMU fällig</label><select data-f="imu_faellig"><option value="nein" ${!d.imu_faellig ? "selected" : ""}>Nein</option><option value="ja" ${d.imu_faellig ? "selected" : ""}>Ja</option></select></div>
         <div data-imu><label>IMU/Jahr (€)</label><input type="text" inputmode="decimal" data-f="imu_jahr" value="${v("imu_jahr")}" /></div>
       </div>
@@ -2992,6 +3007,8 @@ function readImmoCard(card) {
     steuermodell: g("steuermodell") || "cedolare", grenzsteuersatz: numDE(g("grenzsteuersatz")),
     imu_faellig: g("imu_faellig") === "ja", imu_jahr: numDE(g("imu_jahr")), anteil_user: numDE(g("anteil_user")),
     bindung: g("bindung") || null,
+    erstwohnsitz: g("erstwohnsitz") === "ja",
+    im_ausland: g("im_ausland_immo") === "ja",
   };
 }
 
@@ -3570,7 +3587,7 @@ function incomeYearTagged() {
   return { brutto, ritenuteSum, hasData: brutto > 0 };
 }
 
-function renderSteuerKopf(incomeTax, rentTax, imuTotal, kapLaufend, bolloDepot, addizR, addizK) {
+function renderSteuerKopf(incomeTax, rentTax, imuTotal, kapLaufend, bolloDepot, bolloKonten, pensTax, ivafivie, addizR, addizK) {
   // IST-Seite
   const tagged = incomeYearTagged();
   const cta = document.getElementById("st-ist-cta");
@@ -3598,7 +3615,7 @@ function renderSteuerKopf(incomeTax, rentTax, imuTotal, kapLaufend, bolloDepot, 
     ? Number(steuerSettings.zu_versteuerndes_einkommen)
     : (ytdMonths > 0 ? workInc / ytdMonths * 12 : workInc);
   const planIRPEF   = irpef(planEink) + planEink * (addizR + addizK);
-  const planKapital = kapLaufend + bolloDepot;
+  const planKapital = kapLaufend + bolloDepot + bolloKonten + pensTax + ivafivie;
   const planImmo    = rentTax + imuTotal;
   const planTotal   = planIRPEF + planKapital + planImmo;
   const voraus      = Number(steuerSettings.vorauszahlung) || 0;
@@ -3613,7 +3630,7 @@ function renderSteuerKopf(incomeTax, rentTax, imuTotal, kapLaufend, bolloDepot, 
   if (bd) {
     bd.innerHTML = [
       ["Einkommen (IRPEF + Addiz.)", planIRPEF],
-      ["Kapital + Bollo Depot", planKapital],
+      ["Kapital + Bollo + Pensions-Ertrag", planKapital],
       ["Immobilien (Miete + IMU)", planImmo],
     ].map(([label, v]) => `<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">${label}</span><span class="neg">${euro(v)}</span></div>`).join("");
   }
@@ -3695,13 +3712,53 @@ function renderSteuern() {
   const absetzbar = Math.min(totalContrib, 5164.57);
   const vorteil = absetzbar * grenzF;
 
+  // W2.2: Bollo Konten — 34,20 € je Bank mit Saldo > 5.000 €
+  let bolloKonten = 0;
+  banks.forEach((b) => {
+    const tx = allRows.filter((r) => (r.bank || "") === b.name);
+    const txSum = tx.reduce((s, r) => s + (Number(r.soll) || 0) + (Number(r.haben) || 0), 0);
+    const computed = (Number(b.saldo_start) || 0) + txSum;
+    if (computed > 5000) bolloKonten += 34.20;
+  });
+
+  // W2.3: Cedolare-Anteil (informational, bereits in rentTax enthalten)
+  let cedolareTax = 0;
+  immoRows.forEach((d) => {
+    const k = immoKPIs(d); const sh = (n(d.anteil_user) || 100) / 100;
+    if (d.steuermodell === "cedolare" || d.steuermodell === "cedolare_concordato") cedolareTax += (k.steuerM || 0) * 12 * sh;
+  });
+
+  // W2.4: Pensionsfonds-Ertragsbesteuerung — 20 % auf lfd. Rendite
+  let pensTax = 0;
+  pensRows.forEach((d) => { pensTax += pensCurrentWert(d.id) * (n(d.rendite) / 100) * 0.20; });
+
+  // W2.5: IVAFE (0,20 % Auslandsdepots/-konten) + IVIE (0,76 % Auslandsimmobilien)
+  let ivafe = 0, ivie = 0;
+  banks.forEach((b) => {
+    if (!b.im_ausland) return;
+    if (b.hat_portfolio) {
+      const latestB = latestPortfolioMap(portfolioRows, (bank) => bank === b.name);
+      let wert = 0; Object.values(latestB).forEach((r) => { wert += Number(r.wert) || 0; });
+      ivafe += wert * 0.002;
+    } else {
+      const tx = allRows.filter((r) => (r.bank || "") === b.name);
+      const txSum = tx.reduce((s, r) => s + (Number(r.soll) || 0) + (Number(r.haben) || 0), 0);
+      const balance = (Number(b.saldo_start) || 0) + txSum;
+      if (balance > 0) ivafe += balance * 0.002;
+    }
+  });
+  immoRows.forEach((d) => {
+    if (!d.im_ausland) return;
+    ivie += n(d.marktwert) * ((n(d.anteil_user) || 100) / 100) * 0.0076;
+  });
+
   // Summen
-  const laufend = incomeTax + rentTax + imuTotal + kapLaufend + bolloDepot;
+  const laufend = incomeTax + rentTax + imuTotal + kapLaufend + bolloDepot + bolloKonten + pensTax + ivafe + ivie;
   const voraus = n(steuerSettings && steuerSettings.vorauszahlung);
   const diff = laufend - voraus;
 
   // Kopfblock (Ist/Plan)
-  renderSteuerKopf(incomeTax, rentTax, imuTotal, kapLaufend, bolloDepot, addizR, addizK);
+  renderSteuerKopf(incomeTax, rentTax, imuTotal, kapLaufend, bolloDepot, bolloKonten, pensTax, ivafe + ivie, addizR, addizK);
 
   // Übersicht
   setText("st-total", euro(laufend));
@@ -3710,16 +3767,29 @@ function renderSteuern() {
   setText("st-imu", euro(imuTotal));
   setText("st-kapital", euro(kapLaufend));
   setText("st-bollo-depot", euro(bolloDepot));
+  setText("st-bollo-konten", euro(bolloKonten));
+  setText("st-cedolare", euro(cedolareTax));
+  setText("st-pens-ertrag", euro(pensTax));
   setText("st-latent", euro(latent));
   setText("st-vorteil", euro(vorteil));
   const diffEl = document.getElementById("st-diff");
   if (diffEl) { diffEl.textContent = (diff >= 0 ? "Nachzahlung " : "Guthaben ") + euro(Math.abs(diff)); diffEl.className = "v " + (diff > 0 ? "neg" : "pos"); }
+  const auslandRow = document.getElementById("st-row-ausland");
+  if (auslandRow) {
+    auslandRow.style.display = (ivafe > 0 || ivie > 0) ? "" : "none";
+    setText("st-ivafe", euro(ivafe));
+    setText("st-ivie", euro(ivie));
+  }
   renderStBreakdown([
     { name: "Einkommensteuer + Addiz.", v: incomeTax },
-    { name: "Mieteinnahmen", v: rentTax },
+    { name: "Mieteinnahmen (IRPEF)", v: rentTax - cedolareTax },
+    { name: "Cedolare Secca", v: cedolareTax },
     { name: "IMU", v: imuTotal },
     { name: "Kapitalerträge", v: kapLaufend },
     { name: "Bollo Depot", v: bolloDepot },
+    { name: "Bollo Konten", v: bolloKonten },
+    { name: "Pensionsfonds-Ertrag", v: pensTax },
+    { name: "IVAFE/IVIE", v: ivafe + ivie },
   ]);
 
   // Einkommen-Seite
@@ -3743,7 +3813,7 @@ function renderSteuern() {
   if (mb) {
     const rows = immoRows.filter((d) => d.typ === "vermietung");
     mb.innerHTML = rows.length === 0 ? `<tr><td colspan="5" class="empty">Keine vermieteten Immobilien.</td></tr>`
-      : rows.map((d) => { const k = immoKPIs(d); const sh = (n(d.anteil_user) || 100) / 100; const modell = { cedolare: "Cedolare 21 %", irpef: "IRPEF", keine: "Keine" }[d.steuermodell || "cedolare"]; return `<tr><td>${esc(d.bezeichnung || "")}</td><td>${modell}</td><td class="num">${euro(n(d.bruttomiete) * 12 * sh)}</td><td class="num neg">${euro((k.steuerM || 0) * 12 * sh)}</td><td class="num neg">${euro((k.imuM || 0) * 12 * sh)}</td></tr>`; }).join("");
+      : rows.map((d) => { const k = immoKPIs(d); const sh = (n(d.anteil_user) || 100) / 100; const modell = { cedolare: "Cedolare 21 %", cedolare_concordato: "Cedolare 10 %", irpef: "IRPEF", keine: "Keine" }[d.steuermodell || "cedolare"]; return `<tr><td>${esc(d.bezeichnung || "")}</td><td>${modell}</td><td class="num">${euro(n(d.bruttomiete) * 12 * sh)}</td><td class="num neg">${euro((k.steuerM || 0) * 12 * sh)}</td><td class="num neg">${euro((k.imuM || 0) * 12 * sh)}</td></tr>`; }).join("");
   }
 
   // Kapitalerträge-Seite
