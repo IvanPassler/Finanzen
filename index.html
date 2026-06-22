@@ -737,6 +737,10 @@
         </table>
       </div>
       <div id="empty" class="empty hidden">Noch keine Einträge. Importiere eine CSV oder füge oben einen Eintrag hinzu.</div>
+      <div id="tx-load-more" style="display:none;text-align:center;padding:12px 0 4px">
+        <button class="secondary" id="tx-load-more-btn"></button>
+        <button class="link" id="tx-load-less-btn" style="display:none;margin-left:14px;font-size:13px">Nur letzte 12 Monate</button>
+      </div>
     </div>
     </section>
 
@@ -962,11 +966,12 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const loginView = document.getElementById("login-view");
 const appView   = document.getElementById("app-view");
-let allRows = [];        // Transaktionen
+let allRows = [];        // Transaktionen (immer vollständig — niemals beschneiden)
 let portfolioRows = [];  // Portfolio-Stände
 let activeTxBank = null;  // null = Übersicht (alle Banken), sonst Bankname
 let txKKFilter = "alle";  // alle | konto | kk
 let activePfBank = null;  // ETF-Portfolio: null = Übersicht, sonst Bankname
+let txListLimit = 12;    // Monate für Listenanzeige; null = alles zeigen
 
 // ---------- Hilfsfunktionen ----------
 const KEST = 0.26;          // Kapitalertragsteuer IT (26 %)
@@ -1077,10 +1082,22 @@ function render() {
     !q || [r.beschreibung, r.kategorie, r.bank].some((x) => (x || "").toLowerCase().includes(q))
   );
 
+  // Anzeigebegrenzung: nur letzte txListLimit Monate in der Liste (allRows bleibt voll)
+  let listRows = rows;
+  let hasHidden = false;
+  if (txListLimit !== null) {
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - txListLimit);
+    const cutoffStr = isoDate(cutoff);
+    const limited = rows.filter((r) => !r.buchungsdatum || r.buchungsdatum >= cutoffStr);
+    hasHidden = limited.length < rows.length;
+    listRows = limited;
+  }
+
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
   const txGroups = {};
-  rows.forEach((r) => {
+  listRows.forEach((r) => {
     const key = r.buchungsdatum ? String(r.buchungsdatum).slice(0, 7) : "0000-00";
     (txGroups[key] = txGroups[key] || []).push(r);
   });
@@ -1112,8 +1129,28 @@ function render() {
     });
   });
 
-  document.getElementById("count").textContent = rows.length;
-  document.getElementById("empty").classList.toggle("hidden", rows.length > 0);
+  // count zeigt angezeigte / gesamt wenn begrenzt
+  const countEl = document.getElementById("count");
+  if (countEl) countEl.textContent = hasHidden ? `${listRows.length} von ${rows.length}` : rows.length;
+  document.getElementById("empty").classList.toggle("hidden", listRows.length > 0);
+
+  // "Mehr laden" / "Weniger" Steuerung
+  const lmDiv = document.getElementById("tx-load-more");
+  const lmBtn = document.getElementById("tx-load-more-btn");
+  const llBtn = document.getElementById("tx-load-less-btn");
+  if (lmDiv) {
+    if (hasHidden) {
+      lmDiv.style.display = "";
+      if (lmBtn) { lmBtn.style.display = ""; lmBtn.textContent = `Alle ${rows.length} Transaktionen anzeigen`; }
+      if (llBtn) llBtn.style.display = "none";
+    } else if (txListLimit === null && rows.length > 0) {
+      lmDiv.style.display = "";
+      if (lmBtn) lmBtn.style.display = "none";
+      if (llBtn) llBtn.style.display = "";
+    } else {
+      lmDiv.style.display = "none";
+    }
+  }
 
   if (typeof renderBanks === "function") renderBanks();
   renderTxOverview(viewRows);
@@ -1371,6 +1408,8 @@ document.getElementById("tx-submenu").addEventListener("click", (e) => {
 
 function applyFilters() { render(); renderPortfolio(); }
 document.getElementById("search").addEventListener("input", render);
+document.getElementById("tx-load-more-btn").addEventListener("click", () => { txListLimit = null; render(); });
+document.getElementById("tx-load-less-btn").addEventListener("click", () => { txListLimit = 12; render(); });
 document.getElementById("filter-von").addEventListener("change", applyFilters);
 document.getElementById("filter-bis").addEventListener("change", applyFilters);
 document.getElementById("filter-reset").addEventListener("click", () => {
