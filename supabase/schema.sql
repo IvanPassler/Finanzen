@@ -195,6 +195,9 @@ CREATE TABLE public.steuer_einstellungen (
     user_id uuid DEFAULT auth.uid() NOT NULL,
     grenzsteuersatz numeric DEFAULT 23,
     vorauszahlung numeric,
+    zu_versteuerndes_einkommen numeric,
+    addizionale_regionale numeric DEFAULT 1.23,
+    addizionale_comunale numeric DEFAULT 0.8,
     created_at timestamp with time zone DEFAULT now()
 );
 
@@ -216,7 +219,11 @@ CREATE TABLE public.transactions (
     immo_id uuid,
     kreditkarte boolean DEFAULT false,
     umbuchung boolean DEFAULT false,
-    umbuchung_partner uuid
+    umbuchung_partner uuid,
+    ist_einkommen boolean DEFAULT false,
+    einkommensart text,
+    betrag_brutto boolean DEFAULT false,
+    ritenuta numeric
 );
 
 
