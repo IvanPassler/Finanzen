@@ -665,6 +665,40 @@
           <div id="f-kk-field" style="display:none"><label>Art</label><select id="f-kreditkarte"><option value="konto">Konto</option><option value="kk">Kreditkarte</option></select></div>
           <div id="f-bank-field" style="display:none"><label>Bank</label><select id="f-bank"></select></div>
         </div>
+        <!-- Einkommen-Felder (nur bei Haben > 0 sichtbar) -->
+        <div id="f-einkommen-block" style="display:none;margin-top:10px;padding:10px 12px;background:var(--panel2);border-radius:8px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <label style="margin:0;font-weight:600;font-size:13px">Als Einkommen markieren</label>
+            <select id="f-ist-einkommen" style="flex:1">
+              <option value="nein">Nein</option>
+              <option value="ja">Ja – für IRPEF-Berechnung verwenden</option>
+            </select>
+          </div>
+          <div id="f-einkommen-detail" style="display:none;display:flex;flex-direction:column;gap:8px">
+            <div class="row" style="margin:0">
+              <div><label style="font-size:12px">Einkommensart</label>
+                <select id="f-einkommensart">
+                  <option value="dipendente">Lavoro dipendente (Angestellt)</option>
+                  <option value="autonomo">Lavoro autonomo / Freiberuflich</option>
+                  <option value="affitto">Mieteinnahme</option>
+                  <option value="sonstige">Sonstige Einnahme</option>
+                </select>
+              </div>
+              <div><label style="font-size:12px">Betrag</label>
+                <select id="f-betrag-brutto">
+                  <option value="nein">Netto (Betrag nach Abzügen)</option>
+                  <option value="ja">Brutto (Betrag vor Abzügen)</option>
+                </select>
+              </div>
+              <div><label style="font-size:12px">Bereits einbehaltene Steuer (Ritenuta, €)</label>
+                <input type="text" inputmode="decimal" id="f-ritenuta" placeholder="0" />
+              </div>
+            </div>
+            <div id="f-affitto-hint" style="display:none;font-size:12px;color:var(--muted);padding:6px 8px;background:var(--warning-subtle);border-radius:4px">
+              ⚠ Hinweis: Miet-Transaktionen mit Immobilien-Zuordnung werden bereits über IMU/Cedolare berechnet. Doppelerfassung vermeiden.
+            </div>
+          </div>
+        </div>
         <div class="actions" style="margin-top:14px">
           <button type="submit" id="entry-save">Speichern</button>
           <button type="button" class="secondary hidden" id="entry-cancel">Abbrechen</button>
@@ -1395,6 +1429,22 @@ document.getElementById("tbody").addEventListener("click", async (e) => {
 // ======================================================================
 const entryForm = document.getElementById("entry-form");
 
+function updateEinkommenBlock() {
+  const haben = numDE(document.getElementById("f-haben").value) || 0;
+  const block = document.getElementById("f-einkommen-block");
+  if (!block) return;
+  block.style.display = haben > 0 ? "" : "none";
+  const istEink = document.getElementById("f-ist-einkommen").value === "ja";
+  const detail = document.getElementById("f-einkommen-detail");
+  if (detail) detail.style.display = istEink ? "" : "none";
+  const affittoHint = document.getElementById("f-affitto-hint");
+  if (affittoHint) {
+    const einkommensart = document.getElementById("f-einkommensart").value;
+    const immoId = document.getElementById("f-immo").value;
+    affittoHint.style.display = (einkommensart === "affitto" && immoId) ? "" : "none";
+  }
+}
+
 function startEdit(r) {
   document.getElementById("entry-id").value = r.id;
   document.getElementById("f-datum").value = r.buchungsdatum || "";
@@ -1406,6 +1456,12 @@ function startEdit(r) {
   document.getElementById("f-immo").value = r.immo_id || "";
   document.getElementById("f-kreditkarte").value = r.kreditkarte ? "kk" : "konto";
   fillBankSelect(document.getElementById("f-bank"), r.bank);
+  // Einkommens-Felder
+  document.getElementById("f-ist-einkommen").value = r.ist_einkommen ? "ja" : "nein";
+  document.getElementById("f-einkommensart").value = r.einkommensart || "dipendente";
+  document.getElementById("f-betrag-brutto").value = r.betrag_brutto ? "ja" : "nein";
+  document.getElementById("f-ritenuta").value = r.ritenuta != null ? fmtNum(r.ritenuta) : "";
+  updateEinkommenBlock();
   document.getElementById("form-title").textContent = "Eintrag bearbeiten";
   document.getElementById("entry-cancel").classList.remove("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1417,6 +1473,7 @@ function resetForm() {
   document.getElementById("form-title").textContent = "Eintrag hinzufügen";
   document.getElementById("entry-cancel").classList.add("hidden");
   showMsg(document.getElementById("entry-msg"), "", "");
+  updateEinkommenBlock();
 }
 document.getElementById("entry-cancel").addEventListener("click", resetForm);
 
@@ -1433,6 +1490,10 @@ entryForm.addEventListener("submit", async (e) => {
     bank: activeTxBank || document.getElementById("f-bank").value || null,
     immo_id: document.getElementById("f-immo").value || null,
     kreditkarte: document.getElementById("f-kreditkarte").value === "kk",
+    ist_einkommen: document.getElementById("f-ist-einkommen").value === "ja",
+    einkommensart: document.getElementById("f-ist-einkommen").value === "ja" ? (document.getElementById("f-einkommensart").value || null) : null,
+    betrag_brutto: document.getElementById("f-ist-einkommen").value === "ja" && document.getElementById("f-betrag-brutto").value === "ja",
+    ritenuta: document.getElementById("f-ist-einkommen").value === "ja" ? (numDE(document.getElementById("f-ritenuta").value) || null) : null,
   };
   let error;
   if (id) ({ error } = await sb.from("transactions").update(payload).eq("id", id));
@@ -1442,6 +1503,12 @@ entryForm.addEventListener("submit", async (e) => {
   resetForm();
   loadData();
 });
+
+// Einkommen-Block: Sichtbarkeit bei Änderungen steuern
+document.getElementById("f-haben").addEventListener("input", updateEinkommenBlock);
+document.getElementById("f-ist-einkommen").addEventListener("change", updateEinkommenBlock);
+document.getElementById("f-einkommensart").addEventListener("change", updateEinkommenBlock);
+document.getElementById("f-immo").addEventListener("change", updateEinkommenBlock);
 
 // ======================================================================
 //  Portfolio (Depot-Stände über die Zeit)
