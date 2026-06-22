@@ -448,16 +448,45 @@
       <div class="panel" style="background:var(--warning-subtle);border-color:#E0A800">
         <p style="margin:0;font-size:13px;color:#8a6d00"><b>Hinweis:</b> Alle Werte sind vereinfachte Schätzungen zur Orientierung – keine Steuerberatung.</p>
       </div>
+
+      <!-- Ist/Plan-Kopfblock -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">
+        <div class="panel" style="margin-bottom:0">
+          <h2 style="margin-bottom:10px">IST – Steuer auf Einkommen</h2>
+          <p style="color:var(--muted);font-size:12px;margin:0 0 10px">Gebuchte, als Einkommen markierte Transaktionen (laufendes Jahr)</p>
+          <div id="st-ist-block">
+            <div style="font-size:28px;font-weight:700;color:var(--neg)" id="st-kopf-ist-steuer">–</div>
+            <div style="color:var(--muted);font-size:13px;margin:4px 0 8px">bei <span id="st-kopf-ist-einkommen">–</span> Einkommen</div>
+            <div style="font-size:13px">Bereits einbehalten: <b id="st-kopf-ist-bezahlt">–</b></div>
+            <div style="font-size:13px">Noch offen: <b id="st-kopf-ist-offen">–</b></div>
+            <div id="st-ist-cta" style="display:none;margin-top:10px;padding:8px 10px;background:var(--panel2);border-radius:6px;font-size:12px;color:var(--muted)">
+              Noch keine Einkommens-Transaktionen markiert. Öffne eine Einnahme-Buchung und aktiviere „Als Einkommen markieren".
+            </div>
+          </div>
+        </div>
+        <div class="panel" style="margin-bottom:0">
+          <h2 style="margin-bottom:10px">PLAN – Gesamt-Steuerlast</h2>
+          <p style="color:var(--muted);font-size:12px;margin:0 0 10px">Hochrechnung auf Jahresende + alle Vermögenssteuern</p>
+          <div style="font-size:28px;font-weight:700;color:var(--neg)" id="st-kopf-plan-total">–</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:13px" id="st-kopf-plan-breakdown"></div>
+          <div style="margin-top:10px;font-size:13px">Vorauszahlungen: <b id="st-kopf-voraus">–</b></div>
+          <div style="font-size:13px">Voraussichtliche Restzahlung: <b id="st-kopf-plan-rest">–</b></div>
+        </div>
+      </div>
+
       <div class="cards cards-4">
         <div class="stat"><div class="k">Geschätzte Jahressteuer (laufend)</div><div class="v neg" id="st-total">–</div></div>
-        <div class="stat"><div class="k">Einkommensteuer (IRPEF)</div><div class="v neg" id="st-einkommen">–</div></div>
+        <div class="stat"><div class="k">Einkommensteuer (IRPEF + Addizionale)</div><div class="v neg" id="st-einkommen">–</div></div>
         <div class="stat"><div class="k">Mieteinnahmen-Steuer</div><div class="v neg" id="st-miete">–</div></div>
         <div class="stat"><div class="k">IMU / Jahr</div><div class="v neg" id="st-imu">–</div></div>
       </div>
       <div class="cards cards-4">
         <div class="stat"><div class="k">Kapitalertragsteuer (26 %, laufend)</div><div class="v neg" id="st-kapital">–</div></div>
+        <div class="stat"><div class="k">Bollo Depot (0,20 %)</div><div class="v neg" id="st-bollo-depot">–</div></div>
         <div class="stat"><div class="k">Latente Steuer (erst bei Verkauf)</div><div class="v neg" id="st-latent">–</div></div>
         <div class="stat"><div class="k">Absetzbar – Steuervorteil</div><div class="v pos" id="st-vorteil">–</div></div>
+      </div>
+      <div class="cards cards-4">
         <div class="stat"><div class="k">Differenz zu Vorauszahlung</div><div class="v" id="st-diff">–</div></div>
       </div>
       <div class="panel">
@@ -3414,6 +3443,69 @@ function irpef(income) {
   if (i > 50000) t += (i - 50000) * 0.43;
   return t;
 }
+// Einkommens-Transaktionen (ist_einkommen=true) laufendes Jahr — präzise Ist-Berechnung
+function incomeYearTagged() {
+  const yearStart = new Date().getFullYear() + "-01-01";
+  let brutto = 0, ritenuteSum = 0;
+  allRows.forEach((r) => {
+    if (!r.ist_einkommen || !r.buchungsdatum || r.buchungsdatum < yearStart) return;
+    const netto = Number(r.haben) || 0;
+    const rit   = Number(r.ritenuta) || 0;
+    brutto += r.betrag_brutto ? netto : netto + rit;
+    ritenuteSum += rit;
+  });
+  return { brutto, ritenuteSum, hasData: brutto > 0 };
+}
+
+function renderSteuerKopf(incomeTax, rentTax, imuTotal, kapLaufend, bolloDepot, addizR, addizK) {
+  // IST-Seite
+  const tagged = incomeYearTagged();
+  const cta = document.getElementById("st-ist-cta");
+  if (tagged.hasData) {
+    const istSteuer = irpef(tagged.brutto) + tagged.brutto * (addizR + addizK);
+    const istOffen  = Math.max(0, istSteuer - tagged.ritenuteSum);
+    setText("st-kopf-ist-steuer", euro(istSteuer));
+    setText("st-kopf-ist-einkommen", euro(tagged.brutto));
+    setText("st-kopf-ist-bezahlt", euro(tagged.ritenuteSum));
+    setText("st-kopf-ist-offen", euro(istOffen));
+    if (cta) cta.style.display = "none";
+  } else {
+    setText("st-kopf-ist-steuer", "–");
+    setText("st-kopf-ist-einkommen", "–");
+    setText("st-kopf-ist-bezahlt", "–");
+    setText("st-kopf-ist-offen", "–");
+    if (cta) cta.style.display = "";
+  }
+
+  // PLAN-Seite: Jahreseinkommen aus manuellem Override oder Hochrechnung aus workIncomeYear()
+  const now = new Date();
+  const ytdMonths = now.getMonth() + 1;  // 1–12
+  const workInc = workIncomeYear();
+  const planEink = steuerSettings.zu_versteuerndes_einkommen != null
+    ? Number(steuerSettings.zu_versteuerndes_einkommen)
+    : (ytdMonths > 0 ? workInc / ytdMonths * 12 : workInc);
+  const planIRPEF   = irpef(planEink) + planEink * (addizR + addizK);
+  const planKapital = kapLaufend + bolloDepot;
+  const planImmo    = rentTax + imuTotal;
+  const planTotal   = planIRPEF + planKapital + planImmo;
+  const voraus      = Number(steuerSettings.vorauszahlung) || 0;
+  const planRest    = planTotal - voraus;
+
+  setText("st-kopf-plan-total", euro(planTotal));
+  setText("st-kopf-voraus", euro(voraus));
+  const restEl = document.getElementById("st-kopf-plan-rest");
+  if (restEl) { restEl.textContent = euro(Math.abs(planRest)); restEl.style.color = planRest > 0 ? "var(--neg)" : "var(--pos)"; }
+
+  const bd = document.getElementById("st-kopf-plan-breakdown");
+  if (bd) {
+    bd.innerHTML = [
+      ["Einkommen (IRPEF + Addiz.)", planIRPEF],
+      ["Kapital + Bollo Depot", planKapital],
+      ["Immobilien (Miete + IMU)", planImmo],
+    ].map(([label, v]) => `<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">${label}</span><span class="neg">${euro(v)}</span></div>`).join("");
+  }
+}
+
 // Arbeitseinkommen der letzten 12 Monate (Transaktions-Einnahmen ohne Immobilien-Zuordnung)
 function workIncomeYear() {
   const now = new Date();
@@ -3479,6 +3571,11 @@ function renderSteuern() {
   betRows.forEach((d) => { const g = n(d.marktwert) - n(d.invest_hist); if (g > 0) betGain += g; });
   const latent = KEST * (etfGain + betGain);
 
+  // Bollo Depot: 0,20 % auf aktuellen Depotwert
+  let totalDepotWert = 0;
+  Object.values(latest).forEach((r) => { totalDepotWert += n(r.wert) * userShare(r.bank); });
+  const bolloDepot = totalDepotWert * 0.002;
+
   // Absetzbare Beiträge
   let totalContrib = 0;
   pensRows.forEach((d) => { totalContrib += (n(d.eigenbeitrag) + n(d.agbeitrag)) * 12; });
@@ -3486,9 +3583,12 @@ function renderSteuern() {
   const vorteil = absetzbar * grenzF;
 
   // Summen
-  const laufend = incomeTax + rentTax + imuTotal + kapLaufend;
+  const laufend = incomeTax + rentTax + imuTotal + kapLaufend + bolloDepot;
   const voraus = n(steuerSettings && steuerSettings.vorauszahlung);
   const diff = laufend - voraus;
+
+  // Kopfblock (Ist/Plan)
+  renderSteuerKopf(incomeTax, rentTax, imuTotal, kapLaufend, bolloDepot, addizR, addizK);
 
   // Übersicht
   setText("st-total", euro(laufend));
@@ -3496,15 +3596,17 @@ function renderSteuern() {
   setText("st-miete", euro(rentTax));
   setText("st-imu", euro(imuTotal));
   setText("st-kapital", euro(kapLaufend));
+  setText("st-bollo-depot", euro(bolloDepot));
   setText("st-latent", euro(latent));
   setText("st-vorteil", euro(vorteil));
   const diffEl = document.getElementById("st-diff");
   if (diffEl) { diffEl.textContent = (diff >= 0 ? "Nachzahlung " : "Guthaben ") + euro(Math.abs(diff)); diffEl.className = "v " + (diff > 0 ? "neg" : "pos"); }
   renderStBreakdown([
-    { name: "Einkommensteuer", v: incomeTax },
+    { name: "Einkommensteuer + Addiz.", v: incomeTax },
     { name: "Mieteinnahmen", v: rentTax },
     { name: "IMU", v: imuTotal },
     { name: "Kapitalerträge", v: kapLaufend },
+    { name: "Bollo Depot", v: bolloDepot },
   ]);
 
   // Einkommen-Seite
@@ -3516,7 +3618,6 @@ function renderSteuern() {
   if (eb) {
     const i = Math.max(0, workInc);
     const b1 = Math.min(i, 28000), b2 = i > 28000 ? Math.min(i, 50000) - 28000 : 0, b3 = i > 50000 ? i - 50000 : 0;
-    const irpefOnly = irpef(i);
     const addizTotal = i * (addizR + addizK);
     eb.innerHTML = [["bis 28.000 €", b1, 23], ["28.000–50.000 €", b2, 33], ["über 50.000 €", b3, 43]]
       .map((r) => `<tr><td>${r[0]}</td><td class="num">${euro(r[1])}</td><td class="num">${r[2]} %</td><td class="num neg">${euro(r[1] * r[2] / 100)}</td></tr>`).join("")
