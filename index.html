@@ -1537,6 +1537,7 @@ entryForm.addEventListener("submit", async (e) => {
     haben: numDE(document.getElementById("f-haben").value),
     kategorie: document.getElementById("f-kategorie").value || null,
     bank: activeTxBank || document.getElementById("f-bank").value || null,
+    bank_id: bankIdByName(activeTxBank || document.getElementById("f-bank").value || null),
     immo_id: document.getElementById("f-immo").value || null,
     kreditkarte: document.getElementById("f-kreditkarte").value === "kk",
     ist_einkommen: document.getElementById("f-ist-einkommen").value === "ja",
@@ -1896,6 +1897,7 @@ pfForm.addEventListener("submit", async (e) => {
   const payload = {
     datum: document.getElementById("pf-datum").value || null,
     bank: activePfBank || document.getElementById("pf-bank").value || null,
+    bank_id: bankIdByName(activePfBank || document.getElementById("pf-bank").value || null),
     bezeichnung: document.getElementById("pf-bezeichnung").value || null,
     anteile: numDE(document.getElementById("pf-anteile").value),
     investiert: numDE(document.getElementById("pf-investiert").value),
@@ -1999,6 +2001,9 @@ let banks = [];
 let currentUserName = "";
 
 function bankNames() { return banks.map((b) => b.name).filter(Boolean); }
+function bankById(id) { return banks.find((b) => b.id === id) || null; }
+function bankNameById(id) { const b = bankById(id); return b ? b.name : ""; }
+function bankIdByName(name) { if (!name) return null; const b = banks.find((b) => b.name === name); return b ? b.id : null; }
 function fillBankSelect(sel, current) {
   if (!sel) return;
   const cur = current != null ? current : sel.value;
@@ -2028,8 +2033,8 @@ document.getElementById("ub-save").addEventListener("click", async (e) => {
   e.target.disabled = true;
   const b = Math.abs(betrag);
   const rows = [
-    { buchungsdatum: datum, beschreibung: text || ("Umbuchung an " + auf), soll: -b, haben: 0, kategorie: "Umbuchung", bank: von, umbuchung: true },
-    { buchungsdatum: datum, beschreibung: text || ("Umbuchung von " + von), soll: 0, haben: b, kategorie: "Umbuchung", bank: auf, umbuchung: true },
+    { buchungsdatum: datum, beschreibung: text || ("Umbuchung an " + auf), soll: -b, haben: 0, kategorie: "Umbuchung", bank: von, bank_id: bankIdByName(von), umbuchung: true },
+    { buchungsdatum: datum, beschreibung: text || ("Umbuchung von " + von), soll: 0, haben: b, kategorie: "Umbuchung", bank: auf, bank_id: bankIdByName(auf), umbuchung: true },
   ];
   const { data, error } = await sb.from("transactions").insert(rows).select();
   e.target.disabled = false;
@@ -2187,6 +2192,8 @@ bankForm.addEventListener("submit", async (e) => {
   const id = document.getElementById("bank-id").value;
   const name = document.getElementById("bank-name").value.trim();
   if (!name) { if (btn) btn.disabled = false; showMsg(document.getElementById("bank-msg"), "Bitte einen Banknamen eingeben.", "error"); return; }
+  const oldBank = id ? banks.find((b) => b.id === id) : null;
+  const oldName = oldBank ? oldBank.name : null;
   const payload = {
     name,
     vertragsstart: document.getElementById("bank-start").value || null,
@@ -2201,6 +2208,13 @@ bankForm.addEventListener("submit", async (e) => {
   else    ({ error } = await sb.from("banks").insert([payload]));
   if (btn) btn.disabled = false;
   if (error) { showMsg(document.getElementById("bank-msg"), "Fehler: " + error.message, "error"); return; }
+  // Rename-Kaskade: bank-Textspalte in transactions + portfolio synchron halten
+  if (id && oldName && oldName !== name) {
+    await Promise.all([
+      sb.from("transactions").update({ bank: name }).eq("bank", oldName),
+      sb.from("portfolio").update({ bank: name }).eq("bank", oldName),
+    ]);
+  }
   bankReset();
   loadBanks();
 });
@@ -3964,6 +3978,7 @@ document.getElementById("csv-import-btn").addEventListener("click", (ev) => {
       }).filter((r) => r.beschreibung || r.buchungsdatum || r.soll != null || r.haben != null);
 
       if (activeTxBank) rows.forEach((r) => { r.bank = activeTxBank; });  // Import gilt für die gewählte Bank
+      rows.forEach((r) => { r.bank_id = bankIdByName(r.bank); });
       if (document.getElementById("csv-kk").checked) rows.forEach((r) => { r.kreditkarte = true; });
 
       if (rows.length === 0) { showMsg(msg, "Keine gültigen Zeilen gefunden. Prüfe die Spaltenüberschriften.", "error"); return; }

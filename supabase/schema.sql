@@ -3,7 +3,8 @@
 --
 -- Wichtige Design-Entscheidungen (nicht aus dem Schema selbst ableitbar):
 --
--- 1. transactions.bank und portfolio.bank sind TEXT, kein FK auf banks.id.
+-- 1. transactions.bank und portfolio.bank sind TEXT (bleibt für Anzeige/Filter erhalten);
+--    bank_id ist UUID-FK auf banks.id (C17). Beide Spalten existieren parallel.
 --    Verknüpfung erfolgt via Stringvergleich (r.bank === b.name in JS).
 --    Migration zu FK geplant (IMPROVEMENT_PLAN Step 17 / C17).
 --
@@ -179,6 +180,7 @@ CREATE TABLE public.portfolio (
     user_id uuid DEFAULT auth.uid() NOT NULL,
     datum date,
     bank text,
+    bank_id uuid,
     bezeichnung text,
     anteile numeric,
     investiert numeric,
@@ -225,7 +227,8 @@ CREATE TABLE public.transactions (
     ist_einkommen boolean DEFAULT false,
     einkommensart text,
     betrag_brutto boolean DEFAULT false,
-    ritenuta numeric
+    ritenuta numeric,
+    bank_id uuid
 );
 
 
