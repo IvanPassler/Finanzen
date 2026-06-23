@@ -782,6 +782,19 @@ CREATE TABLE public.sim_einstellungen (
 ALTER TABLE public.sim_einstellungen ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users manage own sim_einstellungen" ON public.sim_einstellungen FOR ALL USING (auth.uid() = user_id);
 
+-- Simulation V2: Finanzielle Ziele (Juni 2026)
+CREATE TABLE public.sim_ziele (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id),
+    bezeichnung text, typ text DEFAULT 'sparziel',
+    zielbetrag numeric, zieldatum date,
+    startkapital numeric, sparrate numeric, rendite_override numeric,
+    prioritaet int DEFAULT 1, notiz text,
+    created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.sim_ziele ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own sim_ziele" ON public.sim_ziele FOR ALL USING (auth.uid() = user_id);
+
 -- PostgreSQL database dump complete
 --
 

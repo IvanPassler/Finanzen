@@ -342,7 +342,8 @@
           <a href="#" class="nav-item" data-page="versicherung-uebersicht">Übersicht</a>
         </div>
         <div class="nav-group hidden" data-section="simulator">
-          <a href="#" class="nav-item" data-page="simulator-uebersicht">Übersicht</a>
+          <a href="#" class="nav-item" data-page="simulator-uebersicht">Liquiditätsprognose</a>
+          <a href="#" class="nav-item" data-page="sim-ziele">Finanzielle Ziele</a>
         </div>
       </nav>
       <div class="sidebar-footer">
@@ -708,6 +709,19 @@
             Band zeigt ±15 % Einnahmenvariation. Umbuchungen werden ausgeschlossen.
           </div>
         </div>
+      </div>
+    </section>
+
+    <section id="page-sim-ziele" class="hidden">
+      <div class="cards cards-4" style="margin-bottom:16px">
+        <div class="stat"><div class="k">Nötige Gesamtsparrate</div><div class="v" id="simz-req-sparrate">–</div></div>
+        <div class="stat"><div class="k">Verfügbare Sparrate (Ø Netto)</div><div class="v" id="simz-verf-sparrate">–</div></div>
+        <div class="stat"><div class="k">Bilanz</div><div class="v" id="simz-differenz">–</div></div>
+      </div>
+      <div id="simz-list"></div>
+      <div id="simz-empty" class="empty hidden">Noch keine Ziele erfasst.</div>
+      <div style="margin-top:16px">
+        <button id="simz-add">+ Ziel hinzufügen</button>
       </div>
     </section>
 
@@ -1366,7 +1380,7 @@ const SECTION_PAGES = {
   finanzen: ["dashboard", "transaktionen", "portfolio", "banken", "immobilien", "beteiligungen", "pensionsfonds"],
   steuern: ["steuer-uebersicht", "steuer-einkommen", "steuer-miete", "steuer-kapital", "steuer-absetzbar", "steuer-einstellungen"],
   versicherung: ["versicherung-uebersicht"],
-  simulator: ["simulator-uebersicht"],
+  simulator: ["simulator-uebersicht", "sim-ziele"],
 };
 const PAGES = Object.values(SECTION_PAGES).flat();
 let activeSection = "finanzen";
@@ -1393,6 +1407,7 @@ function showPage(page, title) {
   PAGES.forEach((p) => document.getElementById("page-" + p).classList.toggle("hidden", p !== page));
   document.getElementById("page-title").textContent = title || page;
   if (page === "simulator-uebersicht") renderSim();
+  if (page === "sim-ziele") renderSimZiele();
 }
 document.querySelectorAll(".nav-item").forEach((item) => {
   item.addEventListener("click", (e) => {
@@ -3982,10 +3997,15 @@ let simSidebarW = 320;
 let simSidebarCollapsed = false;
 
 async function loadSim() {
-  const { data } = await sb.from("sim_einstellungen").select("*").limit(1).maybeSingle();
-  simSettings = data || {};
+  const [se, sz] = await Promise.all([
+    sb.from("sim_einstellungen").select("*").limit(1).maybeSingle(),
+    sb.from("sim_ziele").select("*").order("prioritaet", { ascending: true }),
+  ]);
+  simSettings = se.data || {};
   simEvents = Array.isArray(simSettings.einmal_events) ? simSettings.einmal_events : [];
+  simZiele = sz.data || [];
   renderSim();
+  renderSimZiele();
 }
 
 let _simSaveTimer = null;
@@ -4248,6 +4268,259 @@ _simColBtn.addEventListener("click", () => {
   if (!simSidebarCollapsed) _simSb.style.width = simSidebarW + "px";
   _simColBtn.textContent = simSidebarCollapsed ? "◀" : "▶";
   setTimeout(() => { _simSb.style.transition = ""; }, 200);
+});
+
+// ---- Simulation V2: Finanzielle Ziele ----
+let simZiele = [];
+
+// FV = P·(1+r)^n + E·((1+r)^n − 1)/r
+function simFV(startkapital, sparrate, rendite_pa, months) {
+  const r = rendite_pa / 100 / 12, n = months;
+  if (Math.abs(r) < 1e-10) return startkapital + sparrate * n;
+  return startkapital * Math.pow(1 + r, n) + sparrate * ((Math.pow(1 + r, n) - 1) / r);
+}
+// Nötige Monatsrate für E = (Ziel − P·(1+r)^n) · r / ((1+r)^n − 1)
+function simReqSparrate(zielbetrag, startkapital, rendite_pa, months) {
+  const r = rendite_pa / 100 / 12, n = months;
+  if (n <= 0) return Infinity;
+  const fvLump = Math.abs(r) < 1e-10 ? startkapital : startkapital * Math.pow(1 + r, n);
+  const needed = zielbetrag - fvLump;
+  if (Math.abs(r) < 1e-10) return needed / n;
+  const ann = (Math.pow(1 + r, n) - 1) / r;
+  return ann < 1e-10 ? Infinity : needed / ann;
+}
+// Monate bis Ziel (Binärsuche)
+function simMonthsToGoal(startkapital, sparrate, rendite_pa, zielbetrag) {
+  if (zielbetrag <= 0 || startkapital >= zielbetrag) return 0;
+  const maxN = 12 * 60;
+  if (simFV(startkapital, sparrate, rendite_pa, maxN) < zielbetrag) return Infinity;
+  let lo = 1, hi = maxN;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    simFV(startkapital, sparrate, rendite_pa, mid) >= zielbetrag ? (hi = mid) : (lo = mid + 1);
+  }
+  return lo;
+}
+
+const TYP_RENDITE_DEF = { notgroschen: 1.5, sparziel: 4.0, ruhestand: 5.0, freiheit: 6.0 };
+const TYP_LABEL_MAP = { notgroschen: "Notgroschen", sparziel: "Sparziel", ruhestand: "Ruhestand", freiheit: "Fin. Freiheit" };
+
+function zielKPIsCalc(d) {
+  const rendite = Number(d.rendite_override) || TYP_RENDITE_DEF[d.typ] || 4;
+  let zielbetrag = Number(d.zielbetrag) || 0;
+  let startkapital = Number(d.startkapital) || 0;
+  let sparrate = Number(d.sparrate) || 0;
+  let fireMsg = null;
+
+  if (d.typ === "freiheit") {
+    const liquid = simCurrentLiquid();
+    const latest = latestPortfolioMap(portfolioRows, null);
+    const passivM = currentPassiveIncome();
+    const { avgAus, avail, luecke } = computeFFKPIs(liquid, latest, passivM);
+    if (luecke <= 0) {
+      return { alreadyFire: true, pct: 100, ampel: "green", zielbetrag: 0, startkapital: avail, sparrate, rendite, reqSparrate: 0, prognoseDatum: new Date(), months: 0, fireMsg: "Passives Einkommen deckt bereits die Ausgaben. 🎉" };
+    }
+    const r = rendite / 100 / 12;
+    if (!zielbetrag) zielbetrag = r > 0 ? luecke / r : 0;
+    if (!startkapital) startkapital = Math.max(0, avail);
+    if (!sparrate) sparrate = Math.max(0, simAvgCashflow().net);
+    fireMsg = `Monatl. Lücke: ${euro(luecke)} · Verfügbares Vermögen: ${euro(avail)}`;
+  }
+
+  const pct = zielbetrag > 0 ? Math.min(100, Math.max(0, (startkapital / zielbetrag) * 100)) : 0;
+  const months = zielbetrag > 0 ? simMonthsToGoal(startkapital, sparrate, rendite, zielbetrag) : 0;
+  const today = new Date();
+  const prognoseDatum = months === Infinity ? null : months === 0 ? today : new Date(today.getFullYear(), today.getMonth() + months, 1);
+  const zieldatum = d.zieldatum ? new Date(d.zieldatum + "T00:00:00") : null;
+  const monthsToZiel = zieldatum ? Math.round((zieldatum - today) / (1000 * 60 * 60 * 24 * 30.44)) : null;
+  const reqSparrate = (monthsToZiel !== null && monthsToZiel > 0 && zielbetrag > 0) ? simReqSparrate(zielbetrag, startkapital, rendite, monthsToZiel) : null;
+
+  let ampel = "green";
+  if (pct < 100 && months > 0) {
+    if (!prognoseDatum) { ampel = "red"; }
+    else if (zieldatum) {
+      const diffDays = (prognoseDatum - zieldatum) / 86400000;
+      if (diffDays > 90) ampel = "red"; else if (diffDays > 0) ampel = "yellow";
+    }
+  }
+  return { pct, ampel, zielbetrag, startkapital, sparrate, rendite, reqSparrate, prognoseDatum, months, fireMsg };
+}
+
+function zielPrognoseDateStr(kpis) {
+  if (kpis.alreadyFire) return "FIRE 🎉";
+  if (kpis.pct >= 100 || kpis.months === 0) return "✓ Erreicht";
+  if (!kpis.prognoseDatum) return "Nicht erreichbar";
+  const d = kpis.prognoseDatum;
+  return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
+
+function zielFieldsHTML(d, kpis) {
+  const g = (f) => (d[f] !== undefined && d[f] !== null && d[f] !== "" ? d[f] : "");
+  const isFire = d.typ === "freiheit";
+  const ampelColors = { green: "var(--green)", yellow: "var(--warning)", red: "var(--red)" };
+  return `
+    <div class="immo-section"><h4>Stammdaten</h4><div class="immo-grid">
+      <div><label>Bezeichnung</label><input type="text" data-f="bezeichnung" value="${esc(g("bezeichnung"))}"/></div>
+      <div><label>Typ</label><select data-f="typ">
+        <option value="sparziel" ${d.typ === "sparziel" || !d.typ ? "selected" : ""}>Sparziel (allgemein)</option>
+        <option value="notgroschen" ${d.typ === "notgroschen" ? "selected" : ""}>Notgroschen / Puffer</option>
+        <option value="ruhestand" ${d.typ === "ruhestand" ? "selected" : ""}>Ruhestand / Rente</option>
+        <option value="freiheit" ${d.typ === "freiheit" ? "selected" : ""}>Finanzielle Freiheit (FIRE)</option>
+      </select></div>
+      <div><label>Priorität</label><select data-f="prioritaet">
+        ${[1,2,3,4,5].map((p) => `<option value="${p}" ${Number(g("prioritaet") || 1) === p ? "selected" : ""}>Priorität ${p}</option>`).join("")}
+      </select></div>
+    </div></div>
+    <div class="immo-section"><h4>Zielparameter</h4>
+      ${kpis.fireMsg ? `<div class="sim-disclaimer" style="margin-bottom:12px">${esc(kpis.fireMsg)}</div>` : ""}
+      <div class="immo-grid">
+        <div><label>Zielbetrag (€)${isFire ? " – aus Lücke/Rendite" : ""}</label><input type="text" inputmode="decimal" data-f="zielbetrag" value="${g("zielbetrag") ? fmtNum(g("zielbetrag")) : ""}" placeholder="${isFire && kpis.zielbetrag ? fmtNum(kpis.zielbetrag) : ""}"/></div>
+        <div><label>Zieldatum</label><input type="date" data-f="zieldatum" value="${g("zieldatum")}"/></div>
+        <div><label>Startkapital (€)</label><input type="text" inputmode="decimal" data-f="startkapital" value="${g("startkapital") ? fmtNum(g("startkapital")) : ""}" placeholder="${isFire && kpis.startkapital ? fmtNum(kpis.startkapital) : "0"}"/></div>
+        <div><label>Monatliche Sparrate (€)</label><input type="text" inputmode="decimal" data-f="sparrate" value="${g("sparrate") ? fmtNum(g("sparrate")) : ""}"/></div>
+        <div><label>Rendite p.a. (%) – leer = ${TYP_RENDITE_DEF[d.typ] || 4} %</label><input type="text" inputmode="decimal" data-f="rendite_override" value="${g("rendite_override") ? fmtNum(g("rendite_override")) : ""}"/></div>
+      </div>
+    </div>
+    <div class="immo-section"><h4>Hochrechnung</h4>
+      <div class="kpi-grid">
+        <div class="kpibox"><div class="kpi-k">Fortschritt</div><div class="kpi-v">${fmtNum(kpis.pct, 1)} %</div></div>
+        <div class="kpibox"><div class="kpi-k">Prognose-Datum</div><div class="kpi-v" style="font-size:16px;color:${ampelColors[kpis.ampel]}">${zielPrognoseDateStr(kpis)}</div></div>
+        <div class="kpibox"><div class="kpi-k">Nötige Sparrate (Zieldatum)</div><div class="kpi-v">${kpis.reqSparrate !== null ? euro(kpis.reqSparrate) + "/Mon" : "–"}</div></div>
+        <div class="kpibox"><div class="kpi-k">Fehlender Betrag</div><div class="kpi-v">${kpis.zielbetrag > 0 ? euro(Math.max(0, kpis.zielbetrag - kpis.startkapital)) : "–"}</div></div>
+        <div class="kpibox"><div class="kpi-k">Eff. Rendite</div><div class="kpi-v">${fmtNum(kpis.rendite, 1)} %</div></div>
+        <div class="kpibox"><div class="kpi-k">Monate bis Ziel</div><div class="kpi-v">${kpis.months === Infinity ? "∞" : kpis.months === 0 ? "✓" : kpis.months}</div></div>
+      </div>
+    </div>
+    <div class="immo-section"><h4>Notiz</h4>
+      <div><textarea data-f="notiz" rows="2" style="width:100%;box-sizing:border-box">${esc(g("notiz"))}</textarea></div>
+    </div>
+    <div class="immo-actions">
+      <button data-ziel-save>Speichern</button>
+      <span data-ziel-msg style="font-size:13px"></span>
+    </div>`;
+}
+
+function zielCardHTML(d) {
+  const kpis = zielKPIsCalc(d);
+  const pctW = kpis.pct.toFixed(1);
+  const pctColor = { green: "#4CAF50", yellow: "#F59E0B", red: "#E53935" }[kpis.ampel] || "#4CAF50";
+  const typLabel = TYP_LABEL_MAP[d.typ] || d.typ || "Ziel";
+  const subParts = [typLabel, kpis.zielbetrag ? euro(kpis.zielbetrag) : "", d.zieldatum ? "bis " + new Date(d.zieldatum + "T00:00:00").toLocaleDateString("de-DE", { month: "2-digit", year: "numeric" }) : ""].filter(Boolean).join(" · ");
+  const dotColor = { green: "var(--green)", yellow: "var(--warning)", red: "var(--red)" }[kpis.ampel];
+  return `<div class="immo-card collapsed" data-id="${d.id}">
+    <div class="immo-head" data-ziel-toggle>
+      <span class="chev">▾</span>
+      <div class="titlewrap" style="flex:1;min-width:0">
+        <div class="immo-title">${esc(d.bezeichnung || "Neues Ziel")}</div>
+        <div class="immo-sub">${subParts}</div>
+        <div style="height:3px;border-radius:2px;background:var(--border);margin-top:5px;overflow:hidden;max-width:300px">
+          <div style="height:100%;width:${pctW}%;background:${pctColor};border-radius:2px"></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;white-space:nowrap;margin-left:10px">
+        <span class="dot" style="background:${dotColor}"></span>
+        <span style="font-size:12px;color:var(--muted)">${zielPrognoseDateStr(kpis)}</span>
+      </div>
+      <button class="iconbtn" data-ziel-del title="Löschen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+    </div>
+    <div class="immo-body">${zielFieldsHTML(d, kpis)}</div>
+  </div>`;
+}
+
+function readZielCard(card) {
+  const g = (f) => { const el = card.querySelector(`[data-f="${f}"]`); return el ? el.value : ""; };
+  return {
+    id: card.getAttribute("data-id"),
+    bezeichnung: g("bezeichnung") || null,
+    typ: g("typ") || "sparziel",
+    prioritaet: Number(g("prioritaet")) || 1,
+    zielbetrag: numDE(g("zielbetrag")),
+    zieldatum: g("zieldatum") || null,
+    startkapital: numDE(g("startkapital")),
+    sparrate: numDE(g("sparrate")),
+    rendite_override: numDE(g("rendite_override")),
+    notiz: g("notiz") || null,
+  };
+}
+
+function recomputeZielCard(card) {
+  const d = readZielCard(card);
+  const kpis = zielKPIsCalc(d);
+  // Progress bar
+  const bar = card.querySelector(".titlewrap > div:last-of-type > div");
+  if (bar) { const c = { green: "#4CAF50", yellow: "#F59E0B", red: "#E53935" }[kpis.ampel]; bar.style.width = kpis.pct.toFixed(1) + "%"; bar.style.background = c; }
+  // Ampel dot + prognose text
+  const dot = card.querySelector(".immo-head > div > span.dot");
+  const progTxt = card.querySelector(".immo-head > div > span:not(.dot)");
+  const dc = { green: "var(--green)", yellow: "var(--warning)", red: "var(--red)" };
+  if (dot) dot.style.background = dc[kpis.ampel];
+  if (progTxt) progTxt.textContent = zielPrognoseDateStr(kpis);
+  // Title / sub
+  const title = card.querySelector(".immo-title"); if (title) title.textContent = d.bezeichnung || "Neues Ziel";
+  // KPI boxes
+  const kpiVals = card.querySelectorAll(".kpibox .kpi-v");
+  if (kpiVals.length >= 6) {
+    const aColor = dc[kpis.ampel] || dc.green;
+    kpiVals[0].textContent = fmtNum(kpis.pct, 1) + " %";
+    kpiVals[1].textContent = zielPrognoseDateStr(kpis); kpiVals[1].style.color = aColor;
+    kpiVals[2].textContent = kpis.reqSparrate !== null ? euro(kpis.reqSparrate) + "/Mon" : "–";
+    kpiVals[3].textContent = kpis.zielbetrag > 0 ? euro(Math.max(0, kpis.zielbetrag - kpis.startkapital)) : "–";
+    kpiVals[4].textContent = fmtNum(kpis.rendite, 1) + " %";
+    kpiVals[5].textContent = kpis.months === Infinity ? "∞" : kpis.months === 0 ? "✓" : String(kpis.months);
+  }
+}
+
+function renderSimZielSummary() {
+  const { net: avgNet } = simAvgCashflow();
+  let gesamtReq = 0;
+  simZiele.forEach((d) => { const k = zielKPIsCalc(d); if (k.reqSparrate !== null && k.reqSparrate > 0) gesamtReq += k.reqSparrate; });
+  const diff = avgNet - gesamtReq;
+  setText("simz-req-sparrate", euro(gesamtReq) + "/Mon");
+  setText("simz-verf-sparrate", (avgNet >= 0 ? "+" : "") + euro(avgNet) + "/Mon");
+  const diffEl = document.getElementById("simz-differenz");
+  if (diffEl) { diffEl.textContent = (diff >= 0 ? "+" : "") + euro(diff) + "/Mon"; diffEl.className = "v " + (diff >= 0 ? "pos" : "neg"); }
+}
+
+function renderSimZiele() {
+  const list = document.getElementById("simz-list");
+  if (!list) return;
+  const sorted = [...simZiele].sort((a, b) => (Number(a.prioritaet) || 1) - (Number(b.prioritaet) || 1));
+  list.innerHTML = sorted.map(zielCardHTML).join("");
+  const emptyEl = document.getElementById("simz-empty");
+  if (emptyEl) emptyEl.classList.toggle("hidden", simZiele.length > 0);
+  renderSimZielSummary();
+}
+
+const simzListEl = document.getElementById("simz-list");
+simzListEl.addEventListener("input",  (e) => { const c = e.target.closest(".immo-card"); if (c) { recomputeZielCard(c); renderSimZielSummary(); } });
+simzListEl.addEventListener("change", (e) => { const c = e.target.closest(".immo-card"); if (c) { recomputeZielCard(c); renderSimZielSummary(); } });
+simzListEl.addEventListener("click", async (e) => {
+  const card = e.target.closest(".immo-card"); if (!card) return;
+  if (e.target.closest("[data-ziel-toggle]") && !e.target.closest("[data-ziel-del]")) { card.classList.toggle("collapsed"); return; }
+  if (e.target.closest("[data-ziel-del]")) {
+    e.stopPropagation();
+    if (!confirm("Dieses Ziel wirklich löschen?")) return;
+    const { error } = await sb.from("sim_ziele").delete().eq("id", card.getAttribute("data-id"));
+    if (error) alert("Fehler: " + error.message); else loadSim();
+    return;
+  }
+  if (e.target.closest("[data-ziel-save]")) {
+    const d = readZielCard(card); const id = d.id; delete d.id;
+    const msg = card.querySelector("[data-ziel-msg]");
+    let error;
+    if (id) ({ error } = await sb.from("sim_ziele").update(d).eq("id", id));
+    else    ({ error } = await sb.from("sim_ziele").insert([d]));
+    if (error) { if (msg) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; } return; }
+    if (msg) { msg.textContent = "Gespeichert."; msg.style.color = "var(--green)"; setTimeout(() => { msg.textContent = ""; }, 2000); }
+    loadSim(); return;
+  }
+});
+
+document.getElementById("simz-add").addEventListener("click", async () => {
+  const { error } = await sb.from("sim_ziele").insert([{ bezeichnung: "Neues Ziel", typ: "sparziel", prioritaet: simZiele.length + 1 }]);
+  if (error) { alert("Fehler: " + error.message); return; }
+  loadSim();
+  setTimeout(() => { document.getElementById("page-sim-ziele")?.scrollTo(0, 999999); }, 200);
 });
 
 // Sidebar Inputs
