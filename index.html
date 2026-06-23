@@ -227,6 +227,49 @@
   .immo-actions { margin-top: 18px; display: flex; gap: 10px; align-items: center; }
   @media (max-width: 760px) { .immo-grid { grid-template-columns: 1fr 1fr; } .kpi-grid { grid-template-columns: 1fr; } }
 
+  /* ---- Simulation Split-Layout ---- */
+  main:has(#page-simulator-uebersicht:not(.hidden)) { max-width: none; padding: 0; margin: 0; }
+  .sim-layout {
+    display: flex; height: calc(100vh - 57px); overflow: hidden;
+  }
+  .sim-main {
+    flex: 1; min-width: 0; overflow-y: auto; padding: 20px 24px;
+  }
+  .sim-disclaimer {
+    font-size: 12px; color: var(--muted); background: var(--panel2);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-bottom: 16px;
+  }
+  .sim-divider {
+    width: 10px; flex-shrink: 0; background: var(--border); cursor: col-resize;
+    display: flex; align-items: center; justify-content: center; position: relative; z-index: 2;
+    user-select: none;
+  }
+  .sim-divider:hover { background: var(--accent); opacity: 0.4; }
+  .sim-collapse-btn {
+    position: absolute; width: 20px; height: 36px; border-radius: 4px;
+    background: var(--panel); border: 1px solid var(--border); color: var(--muted);
+    font-size: 10px; padding: 0; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 3; box-shadow: var(--shadow-card);
+  }
+  .sim-collapse-btn:hover { background: var(--panel2); color: var(--text); }
+  .sim-sidebar {
+    width: 320px; flex-shrink: 0; overflow-y: auto; overflow-x: hidden;
+    border-left: 1px solid var(--border); padding: 16px; background: var(--panel);
+    box-sizing: border-box;
+  }
+  .sim-sidebar.collapsed { width: 0; padding: 0; border-left: none; overflow: hidden; }
+  .sim-sb-section { margin-bottom: 20px; }
+  .sim-event-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .sim-event-row input { padding: 7px 10px; font-size: 13px; }
+  .sim-event-row input[type="month"] { max-width: 140px; }
+  .sim-event-row input.sim-ev-betrag { max-width: 100px; }
+
+  @media (max-width: 760px) {
+    .sim-layout { flex-direction: column; height: auto; }
+    .sim-sidebar { width: 100% !important; border-left: none; border-top: 1px solid var(--border); }
+    .sim-divider { display: none; }
+  }
+
   @media (max-width: 760px) {
     .cards, .cards-4 { grid-template-columns: 1fr; }
     .row { grid-template-columns: 1fr 1fr; }
@@ -607,9 +650,64 @@
 
     <!-- ===== INVESTMENT-SIMULATOR ===== -->
     <section id="page-simulator-uebersicht" class="hidden">
-      <div class="panel">
-        <h2>Investment-Simulator</h2>
-        <p style="color:var(--muted);font-size:14px;margin:0">Dieser Bereich ist vorbereitet. Hier kommt später eine Simulation – z. B. Vermögensentwicklung über einen Zeithorizont mit Rendite, Sparrate und Inflation, auf Basis deiner aktuellen Daten.</p>
+      <div class="sim-layout">
+        <!-- LEFT: Simulation Output -->
+        <div class="sim-main" id="sim-main">
+          <div class="sim-disclaimer">
+            ⚠ Vereinfachte Modellrechnung unter frei wählbaren Annahmen – keine Anlage-, Steuer- oder Finanzberatung. Zukünftige Renditen und Cashflows sind unsicher.
+          </div>
+          <div class="cards cards-4" style="margin-bottom:16px">
+            <div class="stat"><div class="k">Aktuelle Liquidität</div><div class="v" id="sim-heute">–</div></div>
+            <div class="stat"><div class="k">Tiefpunkt (Basis)</div><div class="v" id="sim-tiefpunkt">–</div></div>
+            <div class="stat"><div class="k">Ø Netto/Monat</div><div class="v" id="sim-sparrate">–</div></div>
+            <div class="stat"><div class="k">Monate unter Puffer</div><div class="v" id="sim-unter-puffer">–</div></div>
+          </div>
+          <div class="panel" style="margin-bottom:0">
+            <h2 style="margin-bottom:4px">Liquiditätsprognose</h2>
+            <p style="font-size:12px;color:var(--muted);margin:0 0 14px">Fortschreibung des heutigen Kontostands auf Basis der durchschnittlichen Monatsbuchungen der letzten 12 Monate.</p>
+            <div class="chart-wrap" id="sim-liq-chart" style="min-height:180px"></div>
+            <div style="display:flex;gap:20px;margin-top:10px;font-size:12px;color:var(--muted);flex-wrap:wrap">
+              <span><span style="display:inline-block;width:22px;height:2.5px;background:#2F5DA8;vertical-align:middle;margin-right:5px"></span>Basis</span>
+              <span><span style="display:inline-block;width:22px;height:2px;background:#2F5DA8;opacity:0.45;vertical-align:middle;margin-right:5px;border-top:2px dashed #2F5DA8"></span>±15 % Einnahmen</span>
+              <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#F59E0B;vertical-align:middle;margin-right:5px"></span>Ereignis</span>
+              <span><span style="display:inline-block;width:22px;height:0;border-top:2px dashed #E53935;vertical-align:middle;margin-right:5px"></span>Mindest-Puffer</span>
+            </div>
+          </div>
+        </div>
+        <!-- DIVIDER -->
+        <div class="sim-divider" id="sim-divider">
+          <button class="sim-collapse-btn" id="sim-collapse-btn" title="Sidebar ein-/ausblenden">▶</button>
+        </div>
+        <!-- RIGHT: Eingaben / Sidebar -->
+        <div class="sim-sidebar" id="sim-sidebar">
+          <h3 style="margin:0 0 16px;font-size:15px">Einstellungen</h3>
+          <div class="sim-sb-section">
+            <label>Horizont</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="range" id="sim-horizont" min="6" max="60" step="6" value="24"
+                style="flex:1;width:auto;padding:0;border:none;background:transparent;cursor:pointer">
+              <b id="sim-horizont-label" style="min-width:55px;text-align:right;white-space:nowrap">24 Mon.</b>
+            </div>
+          </div>
+          <div class="sim-sb-section">
+            <label>Mindest-Puffer (€)</label>
+            <input type="text" inputmode="decimal" id="sim-puffer" placeholder="z. B. 10.000">
+          </div>
+          <div class="sim-sb-section">
+            <div style="font-weight:600;font-size:13px;margin-bottom:10px">Einmal-Ereignisse</div>
+            <div id="sim-events-list"></div>
+            <button class="secondary" id="sim-event-add" style="width:100%;margin-top:8px">+ Ereignis</button>
+          </div>
+          <div class="sim-sb-section" style="background:var(--panel2);border-radius:8px;padding:12px;font-size:13px">
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Datenbasis (letzte 12 Mon.)</div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Ø Einnahmen</span><span class="pos" id="sim-avg-ein">–</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Ø Ausgaben</span><span class="neg" id="sim-avg-aus">–</span></div>
+            <div style="display:flex;justify-content:space-between;padding-top:6px;margin-top:4px;border-top:1px solid var(--border);font-weight:600"><span>Ø Netto</span><span id="sim-avg-net">–</span></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.5">
+            Band zeigt ±15 % Einnahmenvariation. Umbuchungen werden ausgeschlossen.
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1044,7 +1142,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
     if (un) un.textContent = currentUserName;
     await Promise.all([
       loadData(), loadPortfolio(), loadBanks(),
-      loadImmo(), loadBet(), loadPens(), loadSteuer(), loadVers(),
+      loadImmo(), loadBet(), loadPens(), loadSteuer(), loadVers(), loadSim(),
     ]);
     renderDashboard();
   } else {
@@ -1294,6 +1392,7 @@ function showPage(page, title) {
   document.querySelectorAll(".nav-item").forEach((n) => n.classList.toggle("active", n.getAttribute("data-page") === page));
   PAGES.forEach((p) => document.getElementById("page-" + p).classList.toggle("hidden", p !== page));
   document.getElementById("page-title").textContent = title || page;
+  if (page === "simulator-uebersicht") renderSim();
 }
 document.querySelectorAll(".nav-item").forEach((item) => {
   item.addEventListener("click", (e) => {
@@ -3872,6 +3971,317 @@ document.getElementById("vers-add").addEventListener("click", async () => {
   const { error } = await sb.from("versicherungen").insert([{ bezeichnung: "Neue Police", art: "risiko", kategorie: "sonstiges", zahlweise: "jaehrlich", absetzbar: true }]);
   if (error) { alert("Fehler beim Anlegen: " + error.message); return; }
   loadVers();
+});
+
+// ======================================================================
+//  Simulation — V1: Liquiditätsprognose
+// ======================================================================
+let simSettings = {};
+let simEvents = [];  // [{id, label, betrag, monat}]
+let simSidebarW = 320;
+let simSidebarCollapsed = false;
+
+async function loadSim() {
+  const { data } = await sb.from("sim_einstellungen").select("*").limit(1).maybeSingle();
+  simSettings = data || {};
+  simEvents = Array.isArray(simSettings.einmal_events) ? simSettings.einmal_events : [];
+  renderSim();
+}
+
+let _simSaveTimer = null;
+async function saveSim() {
+  const payload = {
+    horizont_monate: Number(simSettings.horizont_monate) || 24,
+    mindest_puffer: simSettings.mindest_puffer || null,
+    einmal_events: simEvents,
+  };
+  if (simSettings.id) {
+    await sb.from("sim_einstellungen").update(payload).eq("id", simSettings.id);
+  } else {
+    const { data } = await sb.from("sim_einstellungen").upsert(payload, { onConflict: "user_id" }).select().maybeSingle();
+    if (data) simSettings.id = data.id;
+  }
+}
+function debounceSaveSim() {
+  clearTimeout(_simSaveTimer);
+  _simSaveTimer = setTimeout(saveSim, 600);
+}
+
+// Gesamte Liquidität aus Banksalden + Transaktionen
+function simCurrentLiquid() {
+  let total = 0;
+  banks.forEach((b) => {
+    const txSum = allRows.filter((r) => !r.umbuchung && (r.bank || "") === b.name)
+      .reduce((s, r) => s + (Number(r.soll) || 0) + (Number(r.haben) || 0), 0);
+    total += (Number(b.saldo_start) || 0) + txSum;
+  });
+  return total;
+}
+
+// Ø monatliche Ein-/Ausgaben aus den letzten 12 Monaten (umbuchungen ausgeschlossen)
+function simAvgCashflow() {
+  const today = new Date();
+  const cutoff = new Date(today.getFullYear(), today.getMonth() - 12, 1);
+  const cutoffM = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}`;
+  const relevant = allRows.filter((r) => !r.umbuchung && r.buchungsdatum && r.buchungsdatum.slice(0, 7) >= cutoffM);
+  const map = {};
+  relevant.forEach((r) => {
+    const m = r.buchungsdatum.slice(0, 7);
+    if (!map[m]) map[m] = { ein: 0, aus: 0 };
+    map[m].ein += Number(r.haben) || 0;
+    map[m].aus += Number(r.soll) || 0;
+  });
+  const months = Object.values(map);
+  if (!months.length) return { ein: 0, aus: 0, net: 0 };
+  const avgEin = months.reduce((s, m) => s + m.ein, 0) / months.length;
+  const avgAus = months.reduce((s, m) => s + m.aus, 0) / months.length;
+  return { ein: avgEin, aus: avgAus, net: avgEin + avgAus };
+}
+
+// Vorwärtsprojektion: gibt Monatsserie + Basisdaten zurück
+function projectLiquiditaet() {
+  const horizont = Number(simSettings.horizont_monate) || 24;
+  const liquid0 = simCurrentLiquid();
+  const { ein: avgEin, aus: avgAus, net: avgNet } = simAvgCashflow();
+  const today = new Date();
+  const series = [];
+  let base = liquid0, pess = liquid0, opt = liquid0;
+  for (let i = 0; i < horizont; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth() + i + 1, 1);
+    const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const evts = simEvents.filter((e) => e.monat === m);
+    const evtSum = evts.reduce((s, e) => s + (Number(e.betrag) || 0), 0);
+    base += avgNet + evtSum;
+    pess += (avgEin * 0.85 + avgAus) + evtSum;
+    opt  += (avgEin * 1.15 + avgAus) + evtSum;
+    series.push({ m, base, pess, opt, events: evts });
+  }
+  return { series, liquid0, avgEin, avgAus, avgNet };
+}
+
+// Hilfsfunktion: "schöner" Y-Achsen-Schritt
+function niceStepSim(rough) {
+  if (rough <= 0) return 1000;
+  const e = Math.pow(10, Math.floor(Math.log10(rough)));
+  const f = rough / e;
+  return e * (f < 2 ? 1 : f < 5 ? 2 : 5);
+}
+
+function drawSimLiqChart(el, series, puffer) {
+  if (!el) return;
+  if (!series || series.length < 2) {
+    el.innerHTML = `<div class="empty" style="padding:40px 0">Keine Transaktionsdaten für die Prognose. Bitte Transaktionen im Bereich Finanzen erfassen.</div>`;
+    return;
+  }
+  const W = 880, H = 270, padL = 78, padR = 18, padT = 22, padB = 44;
+  const n = series.length;
+  const allV = series.flatMap((p) => [p.pess, p.base, p.opt]);
+  if (puffer) allV.push(puffer);
+  allV.push(0);
+  const rawMax = Math.max(...allV), rawMin = Math.min(...allV);
+  const pad = (rawMax - rawMin) * 0.1 || 500;
+  const maxV = rawMax + pad, minV = rawMin - pad;
+  const rng = maxV - minV;
+  const X = (i) => padL + (i / (n - 1)) * (W - padL - padR);
+  const Y = (v) => H - padB - ((v - minV) / rng) * (H - padT - padB);
+
+  const ptStr = (key) => series.map((p, i) => `${X(i).toFixed(1)},${Y(p[key]).toFixed(1)}`).join(" ");
+  const bandPoly = series.map((p, i) => `${X(i).toFixed(1)},${Y(p.opt).toFixed(1)}`).join(" ") + " " +
+    [...series].reverse().map((p, _, arr) => {
+      const origI = series.indexOf(p);
+      return `${X(origI).toFixed(1)},${Y(p.pess).toFixed(1)}`;
+    }).join(" ");
+
+  const step = niceStepSim((maxV - minV) / 4);
+  const yStart = Math.ceil(minV / step) * step;
+  const yTicks = [];
+  for (let v = yStart; v <= maxV; v += step) {
+    const y = Y(v).toFixed(1);
+    const label = Math.abs(v) >= 1000 ? (v / 1000).toFixed(v % 1000 === 0 ? 0 : 1) + "k" : Math.round(v) + "";
+    yTicks.push(`<line x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="var(--border)" stroke-width="1" opacity="0.5"/>
+      <text x="${padL - 6}" y="${Number(y) + 4}" fill="#6B6B6B" font-size="11" text-anchor="end">${label}</text>`);
+  }
+
+  const y0str = Y(0).toFixed(1);
+  const zeroLine = (Number(y0str) > padT && Number(y0str) < H - padB)
+    ? `<line x1="${padL}" x2="${W - padR}" y1="${y0str}" y2="${y0str}" stroke="#6B6B6B" stroke-width="1" opacity="0.3" stroke-dasharray="3,3"/>`
+    : "";
+
+  const pufferY = puffer ? Y(puffer).toFixed(1) : null;
+  const pufferLine = pufferY
+    ? `<line x1="${padL}" x2="${W - padR}" y1="${pufferY}" y2="${pufferY}" stroke="#E53935" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.8"/>
+       <text x="${W - padR}" y="${Number(pufferY) - 4}" fill="#E53935" font-size="11" text-anchor="end">Puffer</text>`
+    : "";
+
+  const labelStep = n <= 12 ? 1 : n <= 24 ? 2 : 6;
+  const xLabels = series
+    .filter((_, i) => i % labelStep === 0 || i === n - 1)
+    .map((p) => {
+      const i = series.indexOf(p);
+      return `<text x="${X(i).toFixed(1)}" y="${H - padB + 16}" fill="#6B6B6B" font-size="11" text-anchor="middle">${fmtMonthShort(p.m)}</text>`;
+    }).join("");
+
+  const eventMarkers = series.flatMap((p, i) =>
+    (p.events || []).filter((e) => e.label || e.betrag).map(() =>
+      `<circle cx="${X(i).toFixed(1)}" cy="${Y(p.base).toFixed(1)}" r="6" fill="#F59E0B" stroke="white" stroke-width="1.5"/>`
+    )
+  ).join("");
+
+  el.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block" id="sim-liq-svg">
+      ${yTicks.join("")}${zeroLine}
+      <polygon points="${bandPoly}" fill="rgba(47,93,168,0.10)"/>
+      <polyline points="${ptStr("pess")}" fill="none" stroke="#2F5DA8" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.45"/>
+      <polyline points="${ptStr("opt")}"  fill="none" stroke="#2F5DA8" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.45"/>
+      <polyline points="${ptStr("base")}" fill="none" stroke="#2F5DA8" stroke-width="2.5"/>
+      ${pufferLine}${eventMarkers}${xLabels}
+      <line id="slg-guide" y1="${padT}" y2="${H - padB}" stroke="#C4C4C4" stroke-width="1" style="display:none"/>
+      <circle id="slg-dot" r="5" fill="#2F5DA8" stroke="#FFFFFF" stroke-width="1.5" style="display:none"/>
+    </svg>
+    <div id="slg-tip" class="chart-tip" style="display:none;min-width:160px"></div>`;
+
+  const svg = el.querySelector("svg");
+  const guide = el.querySelector("#slg-guide");
+  const dot = el.querySelector("#slg-dot");
+  const tip = el.querySelector("#slg-tip");
+  svg.addEventListener("mousemove", (e) => {
+    const rect = svg.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) / rect.width * W;
+    let best = 0, bd = Infinity;
+    series.forEach((_, i) => { const d = Math.abs(X(i) - sx); if (d < bd) { bd = d; best = i; } });
+    const p = series[best];
+    const gx = X(best).toFixed(1), gy = Y(p.base).toFixed(1);
+    guide.setAttribute("x1", gx); guide.setAttribute("x2", gx); guide.style.display = "";
+    dot.setAttribute("cx", gx); dot.setAttribute("cy", gy); dot.style.display = "";
+    const evtHtml = (p.events || []).length
+      ? `<br><span style="color:var(--warning)">📌 ${p.events.map((e) => esc(e.label || "Ereignis") + (e.betrag ? " (" + euro(Number(e.betrag)) + ")" : "")).join(", ")}</span>` : "";
+    const belowPuff = puffer && p.base < puffer ? `<br><span style="color:var(--red)">⚠ unter Mindest-Puffer</span>` : "";
+    tip.innerHTML = `<b>${fmtMonthLong(p.m)}</b><br>
+      Pess.: <b>${euro(p.pess)}</b><br>
+      Basis: <b>${euro(p.base)}</b><br>
+      Opt.:  <b>${euro(p.opt)}</b>${evtHtml}${belowPuff}`;
+    const leftPx = Math.max(80, Math.min(rect.width - 130, (Number(gx) / W) * rect.width));
+    tip.style.left = leftPx + "px"; tip.style.top = "8px"; tip.style.display = "";
+  });
+  svg.addEventListener("mouseleave", () => { guide.style.display = "none"; dot.style.display = "none"; tip.style.display = "none"; });
+}
+
+function renderSimEvents() {
+  const list = document.getElementById("sim-events-list");
+  if (!list) return;
+  if (!simEvents.length) {
+    list.innerHTML = `<div style="font-size:13px;color:var(--muted);margin-bottom:6px">Keine Ereignisse erfasst.</div>`;
+    return;
+  }
+  list.innerHTML = simEvents.map((e, i) => `
+    <div class="sim-event-row" data-evtidx="${i}">
+      <input type="text" class="sim-ev-label" placeholder="Bezeichnung" value="${esc(e.label || "")}" style="min-width:0">
+      <input type="text" inputmode="decimal" class="sim-ev-betrag" placeholder="-18.000" value="${fmtNum(e.betrag)}" style="max-width:90px">
+      <input type="month" class="sim-ev-monat" value="${e.monat || ""}" style="max-width:130px">
+      <button class="danger" data-sim-ev-del="${i}" style="padding:7px;white-space:nowrap">✕</button>
+    </div>`).join("");
+}
+
+function renderSim() {
+  const page = document.getElementById("page-simulator-uebersicht");
+  if (!page || page.classList.contains("hidden")) return;
+
+  const horizont = Number(simSettings.horizont_monate) || 24;
+  const puffer   = Number(simSettings.mindest_puffer) || 0;
+
+  // Horizont-Slider Sync
+  const slider = document.getElementById("sim-horizont");
+  if (slider && slider.value != horizont) slider.value = horizont;
+  const slLabel = document.getElementById("sim-horizont-label");
+  if (slLabel) slLabel.textContent = horizont + " Mon.";
+
+  // Puffer-Feld Sync
+  const pufferInput = document.getElementById("sim-puffer");
+  if (pufferInput && !pufferInput.matches(":focus") && puffer) pufferInput.value = fmtNum(puffer);
+
+  const { series, liquid0, avgEin, avgAus, avgNet } = projectLiquiditaet();
+
+  // KPIs
+  const tiefpunkt = series.reduce((min, p) => p.base < min.v ? { v: p.base, m: p.m } : min, { v: Infinity, m: "" });
+  const unterPuffer = puffer > 0 ? series.filter((p) => p.base < puffer).length : 0;
+
+  setText("sim-heute", euro(liquid0));
+  setText("sim-tiefpunkt", tiefpunkt.v === Infinity ? "–" : `${euro(tiefpunkt.v)}\xa0(${fmtMonthShort(tiefpunkt.m)})`);
+  const spEl = document.getElementById("sim-sparrate");
+  if (spEl) { spEl.textContent = (avgNet >= 0 ? "+" : "") + euro(avgNet) + "/Mon"; spEl.className = "v " + (avgNet >= 0 ? "pos" : "neg"); }
+  const upEl = document.getElementById("sim-unter-puffer");
+  if (upEl) { upEl.textContent = puffer > 0 ? (unterPuffer > 0 ? unterPuffer + " Mon." : "Keiner ✓") : "–"; upEl.style.color = unterPuffer > 0 ? "var(--red)" : "var(--green)"; }
+
+  // Datenbasis Sidebar
+  setText("sim-avg-ein", euro(avgEin));
+  setText("sim-avg-aus", euro(avgAus));
+  const netEl = document.getElementById("sim-avg-net");
+  if (netEl) { netEl.textContent = (avgNet >= 0 ? "+" : "") + euro(avgNet); netEl.style.color = avgNet >= 0 ? "var(--green)" : "var(--red)"; }
+
+  drawSimLiqChart(document.getElementById("sim-liq-chart"), series, puffer || null);
+  renderSimEvents();
+}
+
+// Sidebar Resize (Drag-Divider)
+const _simDiv = document.getElementById("sim-divider");
+const _simSb  = document.getElementById("sim-sidebar");
+const _simColBtn = document.getElementById("sim-collapse-btn");
+
+_simDiv.addEventListener("mousedown", (e) => {
+  if (e.target.closest(".sim-collapse-btn")) return;
+  e.preventDefault();
+  const startX = e.clientX, startW = simSidebarW;
+  const onMove = (ev) => {
+    const newW = Math.max(220, Math.min(600, startW + (startX - ev.clientX)));
+    simSidebarW = newW;
+    if (!simSidebarCollapsed) _simSb.style.width = newW + "px";
+  };
+  const onUp = () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("mouseup", onUp);
+});
+
+_simColBtn.addEventListener("click", () => {
+  simSidebarCollapsed = !simSidebarCollapsed;
+  _simSb.style.transition = "width .15s ease";
+  _simSb.classList.toggle("collapsed", simSidebarCollapsed);
+  if (!simSidebarCollapsed) _simSb.style.width = simSidebarW + "px";
+  _simColBtn.textContent = simSidebarCollapsed ? "◀" : "▶";
+  setTimeout(() => { _simSb.style.transition = ""; }, 200);
+});
+
+// Sidebar Inputs
+document.getElementById("sim-horizont").addEventListener("input", (e) => {
+  simSettings.horizont_monate = Number(e.target.value);
+  document.getElementById("sim-horizont-label").textContent = simSettings.horizont_monate + " Mon.";
+  renderSim(); debounceSaveSim();
+});
+document.getElementById("sim-puffer").addEventListener("change", (e) => {
+  simSettings.mindest_puffer = numDE(e.target.value) || 0;
+  renderSim(); debounceSaveSim();
+});
+
+// Einmal-Ereignisse
+document.getElementById("sim-event-add").addEventListener("click", () => {
+  simEvents.push({ id: crypto.randomUUID(), label: "", betrag: null, monat: isoDate(new Date()).slice(0, 7) });
+  renderSim(); debounceSaveSim();
+});
+document.getElementById("sim-events-list").addEventListener("click", (e) => {
+  const delBtn = e.target.closest("[data-sim-ev-del]");
+  if (delBtn) {
+    simEvents.splice(Number(delBtn.getAttribute("data-sim-ev-del")), 1);
+    renderSim(); debounceSaveSim();
+  }
+});
+document.getElementById("sim-events-list").addEventListener("change", (e) => {
+  const row = e.target.closest("[data-evtidx]");
+  if (!row) return;
+  const idx = Number(row.getAttribute("data-evtidx"));
+  const ev = simEvents[idx]; if (!ev) return;
+  if (e.target.classList.contains("sim-ev-label"))  ev.label  = e.target.value;
+  if (e.target.classList.contains("sim-ev-betrag")) ev.betrag = numDE(e.target.value);
+  if (e.target.classList.contains("sim-ev-monat"))  ev.monat  = e.target.value;
+  renderSim(); debounceSaveSim();
 });
 
 // ======================================================================

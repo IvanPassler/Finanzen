@@ -765,6 +765,23 @@ ALTER TABLE public.versicherung_stand ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users manage own versicherungen"     ON public.versicherungen     FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users manage own versicherung_stand" ON public.versicherung_stand FOR ALL USING (auth.uid() = user_id);
 
+-- Simulations-Einstellungen (V1, Juni 2026)
+CREATE TABLE public.sim_einstellungen (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id),
+    UNIQUE (user_id),
+    horizont_monate int DEFAULT 24,
+    mindest_puffer numeric,
+    einmal_events jsonb DEFAULT '[]'::jsonb,
+    inflation numeric DEFAULT 2.0,
+    rendite_etf numeric DEFAULT 6.0,
+    rendite_anleihen numeric DEFAULT 3.0,
+    rendite_liquide numeric DEFAULT 1.5,
+    created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.sim_einstellungen ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own sim_einstellungen" ON public.sim_einstellungen FOR ALL USING (auth.uid() = user_id);
+
 -- PostgreSQL database dump complete
 --
 
