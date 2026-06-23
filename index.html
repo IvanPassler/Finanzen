@@ -593,9 +593,15 @@
 
     <!-- ===== VERSICHERUNGEN ===== -->
     <section id="page-versicherung-uebersicht" class="hidden">
-      <div class="panel">
-        <h2>Versicherungen</h2>
-        <p style="color:var(--muted);font-size:14px;margin:0">Dieser Bereich ist vorbereitet. Hier kommen später deine Versicherungen (z. B. Lebens-, Sach-, Haftpflichtversicherung) mit Prämien, Laufzeiten, Deckungssummen und Gesamtübersicht.</p>
+      <div class="cards cards-4" style="margin-bottom:16px">
+        <div class="stat"><div class="k">Kapitalwert (Rückkauf)</div><div class="v pos" id="vers-sum-wert">–</div></div>
+        <div class="stat"><div class="k">Jahresprämie gesamt</div><div class="v neg" id="vers-sum-praemie">–</div></div>
+        <div class="stat"><div class="k">Detrazione 19 % (geschätzt)</div><div class="v pos" id="vers-sum-detrazione">–</div></div>
+      </div>
+      <div id="vers-list"></div>
+      <div id="vers-empty" class="empty hidden">Noch keine Policen erfasst. Klicke auf „+ Police hinzufügen".</div>
+      <div style="margin-top:16px">
+        <button id="vers-add">+ Police hinzufügen</button>
       </div>
     </section>
 
@@ -1038,7 +1044,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
     if (un) un.textContent = currentUserName;
     await Promise.all([
       loadData(), loadPortfolio(), loadBanks(),
-      loadImmo(), loadBet(), loadPens(), loadSteuer(),
+      loadImmo(), loadBet(), loadPens(), loadSteuer(), loadVers(),
     ]);
     renderDashboard();
   } else {
@@ -2295,13 +2301,15 @@ function computeWealthSnapshot() {
   betRows.forEach((d) => { betVerm += betKPIs(d).vermoegen; });
   let pensWert = 0;
   pensRows.forEach((d) => { pensWert += pensCurrentWert(d.id); });
-  const networth = liquid + pWert + immoEk + betVerm + pensWert;
+  let versKapital = 0;
+  versRows.filter((d) => d.art === "kapital").forEach((d) => { versKapital += versCurrentWert(d.id); });
+  const networth = liquid + pWert + immoEk + betVerm + pensWert + versKapital;
   let etfGain = 0;
   Object.values(latest).forEach((r) => { const g = (Number(r.wert) || 0) - (Number(r.investiert) || 0); if (g > 0) etfGain += g * userShare(r.bank); });
   let betGain = 0;
   betRows.forEach((d) => { const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); if (g > 0) betGain += g; });
   const latSteuer = KEST * (etfGain + betGain);
-  return { liquid, latest, pInv, pWert, pGain, pPct, immoEk, betVerm, pensWert, networth, latSteuer };
+  return { liquid, latest, pInv, pWert, pGain, pPct, immoEk, betVerm, pensWert, versKapital, networth, latSteuer };
 }
 
 // Cashflow im aktuellen Datumsfilter + Ausgaben letzten Monat
@@ -2347,13 +2355,14 @@ function computeFFKPIs(liquid, latest, passivM) {
   immoRows.forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100); });
   betRows.forEach((d) => { if ((d.bindung || "") === "langfristig") return; const v = betKPIs(d).vermoegen; const g = (Number(d.marktwert) || 0) - (Number(d.invest_hist) || 0); avail += v - KEST * Math.max(0, g); });
   pensRows.forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += pensCurrentWert(d.id); });
+  versRows.filter((d) => d.art === "kapital").forEach((d) => { if ((d.bindung || "") === "langfristig") return; avail += versCurrentWert(d.id); });
   return { avgAus, avail, luecke: avgAus - passivM };
 }
 
 function renderDashboard() {
   if (!document.getElementById("kpi-networth")) return;
 
-  const { liquid, latest, pWert, pGain, pPct, immoEk, betVerm, pensWert, networth, latSteuer } = computeWealthSnapshot();
+  const { liquid, latest, pWert, pGain, pPct, immoEk, betVerm, pensWert, versKapital, networth, latSteuer } = computeWealthSnapshot();
   const { cfEin, cfAus, cfNet, ausLM } = computeCashflow();
   const passivM = currentPassiveIncome();
   const { avgAus, avail, luecke } = computeFFKPIs(liquid, latest, passivM);
@@ -2434,6 +2443,7 @@ function renderDashboard() {
     { label: "Immobilien (EK)", value: Math.max(0, immoEk), color: "#E0A800" },
     { label: "Beteiligungen", value: Math.max(0, betVerm), color: "#6B6B6B" },
     { label: "Pensionsfonds", value: Math.max(0, pensWert), color: "#5B86C9" },
+    { label: "Versicherungen (Kapital)", value: Math.max(0, versKapital), color: "#8E44AD" },
   ]);
   renderDashBindung(latest);
   if (typeof renderSteuern === "function") renderSteuern();
@@ -2449,6 +2459,7 @@ function renderDashBindung(portfolioLatest) {
   immoRows.forEach((d) => add(d.bindung, immoKPIs(d).ekWert * ((Number(d.anteil_user) || 100) / 100)));
   betRows.forEach((d) => add(d.bindung, betKPIs(d).vermoegen));
   pensRows.forEach((d) => add(d.bindung, pensCurrentWert(d.id)));
+  versRows.filter((d) => d.art === "kapital").forEach((d) => add(d.bindung, versCurrentWert(d.id)));
   const order = ["kurzfristig", "mittelfristig", "langfristig", "Nicht zugeordnet"];
   const keys = order.filter((k) => bind[k] != null);
   body.innerHTML = "";
@@ -3354,6 +3365,55 @@ let pensRows = [];
 let pensStand = [];
 const STEUER_MAX_PENSION = 5164.57;
 
+let versRows = [];
+let versStand = [];
+
+// Prämie normiert auf Jahr
+function versPraemieJahr(d) {
+  const p = Number(d.praemie) || 0;
+  switch (d.zahlweise) {
+    case "monatlich":        return p * 12;
+    case "vierteljaehrlich": return p * 4;
+    case "einmalig":         return p;
+    default:                 return p; // jaehrlich
+  }
+}
+// Letzter Stand aus versStand, Fallback auf rueckkaufswert
+function versCurrentWert(versId) {
+  const snaps = versStand.filter((s) => s.vers_id === versId);
+  if (snaps.length === 0) return Number(versRows.find((v) => v.id === versId)?.rueckkaufswert) || 0;
+  snaps.sort((a, b) => (a.datum > b.datum ? 1 : a.datum < b.datum ? -1 : 0));
+  return Number(snaps[snaps.length - 1].wert) || 0;
+}
+function versHistory(versId) {
+  return versStand.filter((s) => s.vers_id === versId).slice().sort((a, b) => (a.datum < b.datum ? -1 : 1));
+}
+// Ablauf-Ampel: gibt { color, label } zurück
+function versAmpel(ablauf) {
+  if (!ablauf) return { color: "var(--green)", label: "unbefristet" };
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const exp = new Date(ablauf + "T00:00:00");
+  const days = Math.round((exp - today) / 86400000);
+  if (days < 0)  return { color: "var(--red)",     label: "abgelaufen" };
+  if (days <= 60) return { color: "var(--warning)", label: days + " Tage" };
+  return { color: "var(--green)", label: exp.toLocaleDateString("de-DE") };
+}
+// Detrazione 19% auf absetzbare Prämien (Topf-gedeckelt)
+function versDetrazione() {
+  const sum = (cats) => versRows.filter((d) => d.absetzbar && cats.includes(d.kategorie)).reduce((s, d) => s + versPraemieJahr(d), 0);
+  const topf530   = Math.min(sum(["leben_kapital", "risikoleben", "bu_unfall"]), 530);
+  const topfLtc   = Math.min(sum(["ltc"]), 1291.14);
+  const gebaeude  = sum(["gebaeude"]);  // 19% ohne Deckel
+  return (topf530 + topfLtc + gebaeude) * 0.19;
+}
+// Auto-Topf-Vorschlag je Kategorie
+const VERS_TOPF_LABEL = {
+  leben_kapital: "530 € (Leben/Unfall)", risikoleben: "530 € (Leben/Unfall)",
+  bu_unfall: "530 € (Leben/Unfall)", ltc: "1.291,14 € (LTC)",
+  gebaeude: "Unbegrenzt (Calamità)", kranken: "Nicht absetzbar",
+  kfz: "Nicht absetzbar", hausrat_haftpflicht: "Nicht absetzbar", sonstiges: "–",
+};
+
 function pensCurrentWert(pensionId) {
   const snaps = pensStand.filter((s) => s.pension_id === pensionId);
   if (snaps.length === 0) return 0;
@@ -3570,6 +3630,248 @@ document.getElementById("pens-add").addEventListener("click", async () => {
   const { error } = await sb.from("pensionsfonds").insert([{ name: "Neuer Pensionsfonds", fondstyp: "FPA", absetzbar: true, rentenjahr: new Date().getFullYear() + 25 }]);
   if (error) { alert("Fehler beim Anlegen: " + error.message); return; }
   loadPens();
+});
+
+// ======================================================================
+//  Versicherungen
+// ======================================================================
+async function loadVers() {
+  const [vr, vs] = await Promise.all([
+    sb.from("versicherungen").select("*").order("created_at", { ascending: true }),
+    sb.from("versicherung_stand").select("*").order("datum", { ascending: true }),
+  ]);
+  if (vr.error) { console.error(vr.error); return; }
+  versRows = vr.data || [];
+  versStand = vs.error ? [] : (vs.data || []);
+  renderVers();
+  renderDashboard();
+}
+
+function versKatOpts(cur) {
+  const opts = [
+    ["leben_kapital",      "Lebensvers. kapitalbildend (Ramo I/III)"],
+    ["risikoleben",        "Risikoleben (temporanea caso morte)"],
+    ["bu_unfall",          "Berufsunfähigkeit / Unfall"],
+    ["ltc",                "Pflege / Non autosufficienza (LTC)"],
+    ["kranken",            "Krankenversicherung"],
+    ["kfz",                "KFZ / RC Auto"],
+    ["hausrat_haftpflicht","Hausrat / Haftpflicht"],
+    ["gebaeude",           "Gebäude / Calamità naturali"],
+    ["sonstiges",          "Sonstiges"],
+  ];
+  return opts.map(([v, l]) => `<option value="${v}" ${cur === v ? "selected" : ""}>${l}</option>`).join("");
+}
+
+function versFieldsHTML(d) {
+  const v = (f) => fmtNum(d[f]);
+  const isKapital = d.art === "kapital";
+  return `
+    <div class="immo-section">
+      <h4>Stammdaten</h4>
+      <div class="immo-grid">
+        <div><label>Bezeichnung</label><input type="text" data-f="bezeichnung" value="${esc(d.bezeichnung || "")}" /></div>
+        <div><label>Gesellschaft</label><input type="text" data-f="gesellschaft" value="${esc(d.gesellschaft || "")}" /></div>
+        <div><label>Art</label><select data-f="art">
+          <option value="risiko"  ${d.art !== "kapital" ? "selected" : ""}>Risiko / Schutz (kein Vermögen)</option>
+          <option value="kapital" ${d.art === "kapital"  ? "selected" : ""}>Kapitalbildend (Rückkaufswert)</option>
+        </select></div>
+        <div><label>Kategorie</label><select data-f="kategorie">${versKatOpts(d.kategorie)}</select></div>
+        <div><label>Bindung</label><select data-f="bindung">${bindOptions(d.bindung)}</select></div>
+        <div><label>Absetzbar (Detrazione)</label><select data-f="absetzbar">
+          <option value="ja" ${d.absetzbar !== false ? "selected" : ""}>Ja – 19 % absetzbar</option>
+          <option value="nein" ${d.absetzbar === false ? "selected" : ""}>Nein</option>
+        </select></div>
+      </div>
+    </div>
+    <div class="immo-section">
+      <h4>Prämie &amp; Laufzeit</h4>
+      <div class="immo-grid">
+        <div><label>Prämie (€)</label><input type="text" inputmode="decimal" data-f="praemie" value="${v("praemie")}" /></div>
+        <div><label>Zahlweise</label><select data-f="zahlweise">
+          <option value="monatlich" ${d.zahlweise === "monatlich" ? "selected" : ""}>Monatlich</option>
+          <option value="vierteljaehrlich" ${d.zahlweise === "vierteljaehrlich" ? "selected" : ""}>Vierteljährlich</option>
+          <option value="jaehrlich" ${!d.zahlweise || d.zahlweise === "jaehrlich" ? "selected" : ""}>Jährlich</option>
+          <option value="einmalig" ${d.zahlweise === "einmalig" ? "selected" : ""}>Einmalig</option>
+        </select></div>
+        <div><label>Vertragsstart</label><input type="date" data-f="vertragsstart" value="${d.vertragsstart || ""}" /></div>
+        <div><label>Ablauf (leer = unbefristet)</label><input type="date" data-f="ablauf" value="${d.ablauf || ""}" /></div>
+        <div><label>Versicherungssumme / Deckung (€)</label><input type="text" inputmode="decimal" data-f="versicherungssumme" value="${v("versicherungssumme")}" /></div>
+        <div><label>Begünstigter</label><input type="text" data-f="beguenstigter" value="${esc(d.beguenstigter || "")}" /></div>
+      </div>
+    </div>
+    <div class="immo-section" data-vers-kapital style="${isKapital ? "" : "display:none"}">
+      <h4>Wertentwicklung (Rückkaufswert)</h4>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Aktueller Wert (letzter Stand): <b data-k="curwert" style="color:var(--text)">–</b></div>
+      <div class="toolbar" style="margin-bottom:10px">
+        <input type="date" data-vers-stand-datum style="max-width:170px" />
+        <input type="text" inputmode="decimal" data-vers-stand-wert placeholder="Wert (€)" style="max-width:160px" />
+        <button class="secondary" data-vers-stand-add>Stand erfassen</button>
+      </div>
+      <div data-vers-chart class="chart-wrap"></div>
+      <div style="overflow-x:auto;margin-top:10px">
+        <table><thead><tr><th>Datum</th><th style="text-align:right">Wert</th><th></th></tr></thead>
+        <tbody data-vers-stand-body></tbody></table>
+      </div>
+    </div>
+    <div class="immo-section">
+      <h4>Notiz</h4>
+      <div><textarea data-f="notiz" rows="2" style="width:100%;box-sizing:border-box">${esc(d.notiz || "")}</textarea></div>
+    </div>
+    <div class="immo-actions">
+      <button data-vers-save>Speichern</button>
+      <span data-vers-msg style="font-size:13px"></span>
+    </div>`;
+}
+
+function versCardHTML(d) {
+  const ampel = versAmpel(d.ablauf);
+  const praemieJ = versPraemieJahr(d);
+  const cur = d.art === "kapital" ? versCurrentWert(d.id) : null;
+  const katLabel = {
+    leben_kapital: "Lebensvers.", risikoleben: "Risikoleben", bu_unfall: "BU/Unfall",
+    ltc: "LTC/Pflege", kranken: "Kranken", kfz: "KFZ/RC", hausrat_haftpflicht: "Hausrat/HP",
+    gebaeude: "Gebäude", sonstiges: "Sonstiges",
+  }[d.kategorie || ""] || d.kategorie || "";
+  const subParts = [
+    esc(d.gesellschaft || ""),
+    katLabel,
+    praemieJ ? euro(praemieJ) + "/Jahr" : "",
+    cur != null ? "Rückkauf: " + euro(cur) : "",
+  ].filter(Boolean).join(" · ");
+  return `<div class="immo-card collapsed" data-id="${d.id}">
+    <div class="immo-head" data-vers-toggle>
+      <span class="chev">▾</span>
+      <div class="titlewrap">
+        <div class="immo-title">${esc(d.bezeichnung || "Neue Police")}</div>
+        <div class="immo-sub">${subParts}</div>
+      </div>
+      <span style="font-size:12px;color:${ampel.color};white-space:nowrap;margin-right:8px">${ampel.label}</span>
+      <button class="iconbtn" data-vers-del title="Löschen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+    </div>
+    <div class="immo-body">${versFieldsHTML(d)}</div>
+  </div>`;
+}
+
+function readVersCard(card) {
+  const g = (f) => { const el = card.querySelector(`[data-f="${f}"]`); return el ? el.value : ""; };
+  return {
+    id: card.getAttribute("data-id") || null,
+    bezeichnung: g("bezeichnung") || null,
+    gesellschaft: g("gesellschaft") || null,
+    art: g("art") || "risiko",
+    kategorie: g("kategorie") || null,
+    praemie: numDE(g("praemie")),
+    zahlweise: g("zahlweise") || "jaehrlich",
+    vertragsstart: g("vertragsstart") || null,
+    ablauf: g("ablauf") || null,
+    versicherungssumme: numDE(g("versicherungssumme")),
+    beguenstigter: g("beguenstigter") || null,
+    absetzbar: g("absetzbar") !== "nein",
+    bindung: g("bindung") || null,
+    notiz: g("notiz") || null,
+  };
+}
+
+function recomputeVersCard(card) {
+  const d = readVersCard(card);
+  const isKapital = d.art === "kapital";
+  const kapitalEl = card.querySelector("[data-vers-kapital]");
+  if (kapitalEl) kapitalEl.style.display = isKapital ? "" : "none";
+  if (isKapital) {
+    const cur = versCurrentWert(d.id);
+    const el = card.querySelector("[data-k='curwert']"); if (el) el.textContent = euro(cur);
+    const hist = versHistory(d.id);
+    const body = card.querySelector("[data-vers-stand-body]");
+    if (body) body.innerHTML = [...hist].reverse().map((s) => `<tr><td>${s.datum ? new Date(s.datum).toLocaleDateString("de-DE") : ""}</td><td class="num">${euro(Number(s.wert) || 0)}</td><td class="num"><button class="danger" data-vers-stand-del="${s.id}">Löschen</button></td></tr>`).join("") || `<tr><td colspan="3" class="empty">Noch keine Stände erfasst.</td></tr>`;
+    const chartEl = card.querySelector("[data-vers-chart]");
+    if (chartEl) drawAreaChart(chartEl, hist.map((s) => ({ m: String(s.datum).slice(0, 7), v: Number(s.wert) || 0 })));
+  }
+  // Ampel in Head aktualisieren
+  const ampel = versAmpel(d.ablauf);
+  const ampelEl = card.querySelector(".immo-head > span[style*='white-space']");
+  if (ampelEl) { ampelEl.textContent = ampel.label; ampelEl.style.color = ampel.color; }
+  // Sub-Zeile aktualisieren
+  const praemieJ = versPraemieJahr(d);
+  const cur2 = isKapital ? versCurrentWert(d.id) : null;
+  const katLabel = { leben_kapital: "Lebensvers.", risikoleben: "Risikoleben", bu_unfall: "BU/Unfall", ltc: "LTC/Pflege", kranken: "Kranken", kfz: "KFZ/RC", hausrat_haftpflicht: "Hausrat/HP", gebaeude: "Gebäude", sonstiges: "Sonstiges" }[d.kategorie || ""] || "";
+  const sub = card.querySelector(".immo-sub");
+  if (sub) sub.textContent = [d.gesellschaft, katLabel, praemieJ ? euro(praemieJ) + "/Jahr" : "", cur2 != null ? "Rückkauf: " + euro(cur2) : ""].filter(Boolean).join(" · ");
+  const title = card.querySelector(".immo-title");
+  if (title) title.textContent = d.bezeichnung || "Neue Police";
+}
+
+function renderVersSummary() {
+  let gesamtPraemie = 0;
+  versRows.forEach((d) => { gesamtPraemie += versPraemieJahr(d); });
+  let kapWert = 0;
+  versRows.filter((d) => d.art === "kapital").forEach((d) => { kapWert += versCurrentWert(d.id); });
+  setText("vers-sum-wert", euro(kapWert));
+  setText("vers-sum-praemie", euro(gesamtPraemie));
+  setText("vers-sum-detrazione", euro(versDetrazione()));
+}
+
+function renderVers() {
+  const list = document.getElementById("vers-list");
+  if (!list) return;
+  list.innerHTML = versRows.map(versCardHTML).join("");
+  const emptyEl = document.getElementById("vers-empty");
+  if (emptyEl) emptyEl.classList.toggle("hidden", versRows.length > 0);
+  list.querySelectorAll(".immo-card").forEach((card) => recomputeVersCard(card));
+  const iso = isoDate(new Date());
+  list.querySelectorAll("[data-vers-stand-datum]").forEach((el) => { el.value = iso; });
+  renderVersSummary();
+}
+
+const versListEl = document.getElementById("vers-list");
+versListEl.addEventListener("input",  (e) => { const c = e.target.closest(".immo-card"); if (c) { recomputeVersCard(c); renderVersSummary(); } });
+versListEl.addEventListener("change", (e) => { const c = e.target.closest(".immo-card"); if (c) { recomputeVersCard(c); renderVersSummary(); } });
+versListEl.addEventListener("click", async (e) => {
+  const card = e.target.closest(".immo-card"); if (!card) return;
+  // Toggle
+  if (e.target.closest("[data-vers-toggle]") && !e.target.closest("[data-vers-del]")) {
+    card.classList.toggle("collapsed"); return;
+  }
+  // Löschen
+  if (e.target.closest("[data-vers-del]")) {
+    e.stopPropagation();
+    if (!confirm("Diese Police wirklich löschen?")) return;
+    const { error } = await sb.from("versicherungen").delete().eq("id", card.getAttribute("data-id"));
+    if (error) alert("Fehler: " + error.message); else loadVers();
+    return;
+  }
+  // Stand erfassen
+  if (e.target.closest("[data-vers-stand-add]")) {
+    const datum = card.querySelector("[data-vers-stand-datum]").value;
+    const wert  = numDE(card.querySelector("[data-vers-stand-wert]").value);
+    if (!datum || wert == null) { alert("Bitte Datum und Wert eingeben."); return; }
+    const { error } = await sb.from("versicherung_stand").insert([{ vers_id: card.getAttribute("data-id"), datum, wert }]);
+    if (error) { alert("Fehler: " + error.message); return; }
+    loadVers(); return;
+  }
+  // Stand löschen
+  const standDel = e.target.closest("[data-vers-stand-del]");
+  if (standDel) {
+    const { error } = await sb.from("versicherung_stand").delete().eq("id", standDel.getAttribute("data-vers-stand-del"));
+    if (error) alert("Fehler: " + error.message); else loadVers();
+    return;
+  }
+  // Speichern
+  if (e.target.closest("[data-vers-save]")) {
+    const d = readVersCard(card); const id = d.id; delete d.id;
+    const msg = card.querySelector("[data-vers-msg]");
+    let error;
+    if (id) ({ error } = await sb.from("versicherungen").update(d).eq("id", id));
+    else    ({ error } = await sb.from("versicherungen").insert([d]));
+    if (error) { if (msg) { msg.textContent = "Fehler: " + error.message; msg.style.color = "var(--red)"; } return; }
+    if (msg) { msg.textContent = "Gespeichert."; msg.style.color = "var(--green)"; setTimeout(() => { msg.textContent = ""; }, 2000); }
+    loadVers(); return;
+  }
+});
+
+document.getElementById("vers-add").addEventListener("click", async () => {
+  const { error } = await sb.from("versicherungen").insert([{ bezeichnung: "Neue Police", art: "risiko", kategorie: "sonstiges", zahlweise: "jaehrlich", absetzbar: true }]);
+  if (error) { alert("Fehler beim Anlegen: " + error.message); return; }
+  loadVers();
 });
 
 // ======================================================================

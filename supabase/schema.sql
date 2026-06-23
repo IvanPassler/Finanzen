@@ -738,6 +738,33 @@ CREATE POLICY update_own ON public.transactions FOR UPDATE USING ((auth.uid() = 
 
 
 --
+-- Versicherungen (C-Erweiterung, Juni 2026)
+CREATE TABLE public.versicherungen (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid DEFAULT auth.uid() NOT NULL REFERENCES auth.users(id),
+    bezeichnung text, gesellschaft text,
+    art text NOT NULL DEFAULT 'risiko',
+    kategorie text,
+    praemie numeric, zahlweise text DEFAULT 'jaehrlich',
+    vertragsstart date, ablauf date,
+    versicherungssumme numeric, rueckkaufswert numeric,
+    beguenstigter text, absetzbar boolean DEFAULT true,
+    bindung text, notiz text,
+    immo_id uuid REFERENCES public.immobilien(id) ON DELETE SET NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+CREATE TABLE public.versicherung_stand (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid DEFAULT auth.uid() NOT NULL REFERENCES auth.users(id),
+    vers_id uuid NOT NULL REFERENCES public.versicherungen(id) ON DELETE CASCADE,
+    datum date NOT NULL, wert numeric NOT NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE public.versicherungen     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.versicherung_stand ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own versicherungen"     ON public.versicherungen     FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users manage own versicherung_stand" ON public.versicherung_stand FOR ALL USING (auth.uid() = user_id);
+
 -- PostgreSQL database dump complete
 --
 
