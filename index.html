@@ -2214,6 +2214,9 @@ bankForm.addEventListener("submit", async (e) => {
       sb.from("transactions").update({ bank: name }).eq("bank", oldName),
       sb.from("portfolio").update({ bank: name }).eq("bank", oldName),
     ]);
+    if (activeTxBank === oldName) activeTxBank = name;
+    if (activePfBank === oldName) activePfBank = name;
+    await Promise.all([loadData(), loadPortfolio()]);
   }
   bankReset();
   loadBanks();
