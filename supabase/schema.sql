@@ -795,6 +795,122 @@ CREATE TABLE public.sim_ziele (
 ALTER TABLE public.sim_ziele ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users manage own sim_ziele" ON public.sim_ziele FOR ALL USING (auth.uid() = user_id);
 
+-- Simulation V3: Szenarien – Aktionen auf Vermögenswerten (Juni 2026)
+-- horizont_jahre + rendite_immo als ALTER auf sim_einstellungen ergänzt
+ALTER TABLE public.sim_einstellungen ADD COLUMN IF NOT EXISTS horizont_jahre int DEFAULT 15;
+ALTER TABLE public.sim_einstellungen ADD COLUMN IF NOT EXISTS rendite_immo numeric DEFAULT 2.0;
+
+CREATE TABLE public.sim_aktionen (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id),
+    asset_typ text NOT NULL,
+    asset_ref_id uuid NOT NULL,
+    asset_name text,
+    aktion_typ text NOT NULL,
+    betrag numeric,
+    datum_start date,
+    datum_ende date,
+    notiz text,
+    created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.sim_aktionen ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own sim_aktionen" ON public.sim_aktionen FOR ALL USING (auth.uid() = user_id);
+
+-- Finanzen-Erweiterung (Juni 2026)
+ALTER TABLE public.banks ADD COLUMN IF NOT EXISTS anteil_user numeric DEFAULT 100;
+ALTER TABLE public.portfolio ADD COLUMN IF NOT EXISTS wertpapier_typ text DEFAULT 'etf';
+ALTER TABLE public.immobilien ADD COLUMN IF NOT EXISTS darlehen_start numeric;
+ALTER TABLE public.immobilien ADD COLUMN IF NOT EXISTS tilgung_start date;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS kategorie_id uuid;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS einkommen_id uuid;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS steuerstatus text;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS ist_kreditrate boolean DEFAULT false;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS tilgungsanteil numeric;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS zinsanteil numeric;
+
+CREATE TABLE IF NOT EXISTS public.immo_shares (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    immo_id uuid NOT NULL REFERENCES public.immobilien(id) ON DELETE CASCADE,
+    owner_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id),
+    shared_with uuid NOT NULL REFERENCES auth.users(id),
+    anteil numeric, rolle text DEFAULT 'viewer',
+    created_at timestamptz DEFAULT now(),
+    UNIQUE (immo_id, shared_with)
+);
+ALTER TABLE public.immo_shares ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "ish_select_own" ON public.immo_shares FOR SELECT USING (auth.uid() = owner_id OR auth.uid() = shared_with);
+CREATE POLICY "ish_insert_own" ON public.immo_shares FOR INSERT WITH CHECK (auth.uid() = owner_id);
+CREATE POLICY "ish_delete_own" ON public.immo_shares FOR DELETE USING (auth.uid() = owner_id);
+CREATE POLICY "i_select_shared" ON public.immobilien FOR SELECT USING (EXISTS (SELECT 1 FROM public.immo_shares s WHERE s.immo_id = immobilien.id AND s.shared_with = auth.uid()));
+
+CREATE TABLE IF NOT EXISTS public.vermoegensgegenstaende (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id),
+    bezeichnung text NOT NULL, art text DEFAULT 'sonstige',
+    menge numeric, einheit text, kaufdatum date, kaufpreis numeric, marktwert numeric,
+    anteil_user numeric DEFAULT 100, notiz text, bindung text,
+    created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.vermoegensgegenstaende ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "vg_select_own" ON public.vermoegensgegenstaende FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "vg_insert_own" ON public.vermoegensgegenstaende FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "vg_update_own" ON public.vermoegensgegenstaende FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "vg_delete_own" ON public.vermoegensgegenstaende FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.kategorien (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id),
+    name text NOT NULL, parent_id uuid REFERENCES public.kategorien(id) ON DELETE CASCADE,
+    typ text DEFAULT 'ausgabe', created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.kategorien ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "kat_select_own" ON public.kategorien FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "kat_insert_own" ON public.kategorien FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "kat_update_own" ON public.kategorien FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "kat_delete_own" ON public.kategorien FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.einkommen (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id),
+    bezeichnung text NOT NULL, art text NOT NULL,
+    steuerstatus text DEFAULT 'brutto', steuermodell text, steuersatz numeric,
+    quelle_immo_id uuid REFERENCES public.immobilien(id) ON DELETE SET NULL,
+    quelle_beteiligung_id uuid REFERENCES public.beteiligungen(id) ON DELETE SET NULL,
+    notiz text, created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.einkommen ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "ek_select_own" ON public.einkommen FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "ek_insert_own" ON public.einkommen FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "ek_update_own" ON public.einkommen FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "ek_delete_own" ON public.einkommen FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.budgets (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id),
+    kategorie_id uuid REFERENCES public.kategorien(id) ON DELETE CASCADE,
+    betrag numeric NOT NULL, zeitraum text DEFAULT 'monat', notiz text,
+    created_at timestamptz DEFAULT now(),
+    UNIQUE (user_id, kategorie_id, zeitraum)
+);
+ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "bg_select_own" ON public.budgets FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "bg_insert_own" ON public.budgets FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "bg_update_own" ON public.budgets FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "bg_delete_own" ON public.budgets FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.vermoegen_snapshot (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id),
+    datum date NOT NULL, wert_gesamt numeric, netto_einzahlung numeric,
+    created_at timestamptz DEFAULT now(),
+    UNIQUE (user_id, datum)
+);
+ALTER TABLE public.vermoegen_snapshot ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "vs_select_own" ON public.vermoegen_snapshot FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "vs_insert_own" ON public.vermoegen_snapshot FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "vs_update_own" ON public.vermoegen_snapshot FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "vs_delete_own" ON public.vermoegen_snapshot FOR DELETE USING (auth.uid() = user_id);
+
 -- PostgreSQL database dump complete
 --
 
