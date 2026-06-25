@@ -4090,55 +4090,122 @@ function buildSimAssets() {
   return assets;
 }
 
+// Asset-class-specific volatility bands (pess/optim multipliers)
+const SIM_MULT = {
+  base:  { portfolio:1.00, immo:1.00, bank:1.00, bet:1.00, pens:1.00, vers:1.00 },
+  pess:  { portfolio:0.50, immo:0.60, bank:0.85, bet:0.40, pens:0.70, vers:0.90 },
+  optim: { portfolio:1.50, immo:1.40, bank:1.15, bet:1.80, pens:1.30, vers:1.10 },
+};
+const BOLLO = 0.0020; // 0.20% p.a. Imposta di Bollo (IT)
+const ETF_TER = 0.0020; // 0.20% p.a. default TER
+
+function simLatentTax(assetVals) {
+  let tax = 0;
+  assetVals.forEach((a) => {
+    if (a.typ === "portfolio" || a.typ === "bet") {
+      const gain = (a.value || 0) - (a.costBasis || 0);
+      if (gain > 0) tax += gain * KEST;
+    }
+  });
+  return tax;
+}
+
 // Jahresweise Vorwärtsprojektion
-function projectSzenarien(assets, horizont, renditeMultiplier = 1) {
+function projectSzenarien(assets, horizont, mode = "base") {
+  const inflation = (Number(simSettings.inflation) || 2) / 100;
+  const liqR = (Number(simSettings.rendite_liquide) || 1.5) / 100;
+  const mult = SIM_MULT[mode] || SIM_MULT.base;
   const today = new Date();
   const currentYear = today.getFullYear();
-  const assetVals = assets.map((a) => ({ ...a, value: a.value }));
-  let freiesKapital = 0; // Aus Verkäufen freigesetzte Mittel
-  const liqRendite = (Number(simSettings.rendite_liquide) || 1.5) / 100;
 
-  const series = [{ year: currentYear, total: assetVals.reduce((s, a) => s + a.value, 0) + freiesKapital }];
+  const assetVals = assets.map((a) => ({
+    ...a,
+    value: Math.max(0, a.value || 0),
+    costBasis: Math.max(0, a.value || 0),
+  }));
+
+  let freiesKapital = 0;
+  let freiesKapBasis = 0;
+  let cumTaxPaid = 0;
+  let cumCostsPaid = 0;
+
+  const year0gross = assetVals.reduce((s, a) => s + a.value, 0);
+  const year0net = year0gross - simLatentTax(assetVals);
+  const series = [{
+    year: currentYear,
+    total: year0gross,
+    netTotal: year0net,
+    realNetTotal: year0net,
+    taxPaid: 0,
+    costsPaid: 0,
+  }];
 
   for (let y = 1; y <= horizont; y++) {
     const year = currentYear + y;
+    freiesKapital *= (1 + liqR);
 
-    // Freigesetzte Mittel wachsen mit Tagesgeld-Rendite
-    freiesKapital *= (1 + liqRendite);
+    let yearCosts = 0;
 
     assetVals.forEach((asset) => {
-      const r = (asset.defaultRendite / 100) * renditeMultiplier;
-      asset.value *= (1 + r);
+      const m = mult[asset.typ] || 1.0;
+      const rGross = (asset.defaultRendite / 100) * m;
 
-      // Aktionen für dieses Asset und dieses Jahr anwenden
+      if (asset.typ === "portfolio") {
+        // Grow gross, then subtract Bollo + TER as absolute cost
+        asset.value *= (1 + rGross);
+        const costsDrag = asset.value * (BOLLO + ETF_TER);
+        asset.value -= costsDrag;
+        yearCosts += costsDrag;
+      } else {
+        asset.value *= (1 + rGross);
+      }
+
+      // Apply aktionen
       simAktionen.filter((a) => a.asset_ref_id === asset.id).forEach((a) => {
-        const startY = a.datum_start ? new Date(a.datum_start).getFullYear() : 9999;
-        const endY   = a.datum_ende  ? new Date(a.datum_ende).getFullYear()  : startY;
+        const startY = a.datum_start ? new Date(a.datum_start + "T00:00:00").getFullYear() : 9999;
+        const endY   = a.datum_ende  ? new Date(a.datum_ende  + "T00:00:00").getFullYear() : startY;
         if (a.aktion_typ === "sparplan" && year >= startY && year <= endY) {
-          asset.value += (Number(a.betrag) || 0) * 12;
+          const c = (Number(a.betrag) || 0) * 12;
+          asset.value += c;
+          asset.costBasis += c;
         } else if ((a.aktion_typ === "einmal" || a.aktion_typ === "auszahlung") && year === startY) {
           const b = Number(a.betrag) || 0;
           asset.value += b;
-          if (b < 0) freiesKapital += Math.abs(b);
+          if (b > 0) asset.costBasis += b;
+          else { freiesKapital += Math.abs(b); freiesKapBasis += Math.abs(b); }
         } else if (a.aktion_typ === "verkauf" && year === startY) {
-          const verkauft = a.betrag ? Math.min(asset.value, Number(a.betrag)) : asset.value;
-          freiesKapital += verkauft;
-          asset.value -= verkauft;
-          asset.value = Math.max(0, asset.value);
+          const v = a.betrag ? Math.min(asset.value, Number(a.betrag)) : asset.value;
+          const ratio = asset.value > 0 ? v / asset.value : 1;
+          const gainSold = Math.max(0, v - (asset.costBasis || 0) * ratio);
+          const taxOnSale = (asset.typ === "portfolio" || asset.typ === "bet") ? gainSold * KEST : 0;
+          cumTaxPaid += taxOnSale;
+          freiesKapital += v - taxOnSale;
+          freiesKapBasis += v - taxOnSale;
+          asset.costBasis = Math.max(0, (asset.costBasis || 0) * (1 - ratio));
+          asset.value = Math.max(0, asset.value - v);
         }
       });
     });
 
-    series.push({ year, total: assetVals.reduce((s, a) => s + Math.max(0, a.value), 0) + freiesKapital });
+    cumCostsPaid += yearCosts;
+
+    const grossTotal = assetVals.reduce((s, a) => s + Math.max(0, a.value), 0) + freiesKapital;
+    const netTotal = grossTotal - simLatentTax(assetVals);
+    const realNetTotal = netTotal / Math.pow(1 + inflation, y);
+
+    series.push({ year, total: grossTotal, netTotal, realNetTotal, taxPaid: cumTaxPaid, costsPaid: cumCostsPaid });
   }
   return series;
 }
 
-function drawSzenarienChart(el, baseSeries, pessimSeries, optimSeries) {
+function drawSzenarienChart(el, baseSeries, pessimSeries, optimSeries, showReal = false) {
   if (!el || !baseSeries || baseSeries.length < 2) { el.innerHTML = `<div class="empty" style="padding:30px 0">Keine Daten.</div>`; return; }
   const W = 880, H = 220, padL = 72, padR = 12, padT = 16, padB = 36;
   const n = baseSeries.length;
-  const allV = [...baseSeries, ...pessimSeries, ...optimSeries].map((p) => p.total).concat([0]);
+  const allV = [...baseSeries, ...pessimSeries, ...optimSeries].map((p) => p.total)
+    .concat(baseSeries.map((p) => p.netTotal))
+    .concat(showReal ? baseSeries.map((p) => p.realNetTotal) : [])
+    .concat([0]);
   const maxV = Math.max(...allV), minV = Math.min(...allV, 0);
   const rng = maxV - minV || 1;
   const X = (i) => padL + (i / (n - 1)) * (W - padL - padR);
@@ -4146,6 +4213,8 @@ function drawSzenarienChart(el, baseSeries, pessimSeries, optimSeries) {
   const pts = (ser) => ser.map((p, i) => `${X(i).toFixed(1)},${Y(p.total).toFixed(1)}`).join(" ");
   const bandPoly = optimSeries.map((p, i) => `${X(i).toFixed(1)},${Y(p.total).toFixed(1)}`).join(" ") +
     " " + [...pessimSeries].reverse().map((p, i, arr) => `${X(n - 1 - i).toFixed(1)},${Y(p.total).toFixed(1)}`).join(" ");
+  const ptsNet  = baseSeries.map((p, i) => `${X(i).toFixed(1)},${Y(p.netTotal).toFixed(1)}`).join(" ");
+  const ptsReal = showReal ? baseSeries.map((p, i) => `${X(i).toFixed(1)},${Y(p.realNetTotal).toFixed(1)}`).join(" ") : "";
   const step = niceStepSim((maxV - minV) / 4);
   const yStart = Math.ceil(minV / step) * step;
   const yTicks = [];
@@ -4164,6 +4233,8 @@ function drawSzenarienChart(el, baseSeries, pessimSeries, optimSeries) {
     <polyline points="${pts(pessimSeries)}" fill="none" stroke="#2F5DA8" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.45"/>
     <polyline points="${pts(optimSeries)}"  fill="none" stroke="#2F5DA8" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.45"/>
     <polyline points="${pts(baseSeries)}"   fill="none" stroke="#2F5DA8" stroke-width="2.5"/>
+    <polyline points="${ptsNet}" fill="none" stroke="#2E7D32" stroke-width="2"/>
+    ${showReal ? `<polyline points="${ptsReal}" fill="none" stroke="#2E7D32" stroke-width="1.5" stroke-dasharray="5,3"/>` : ""}
     ${xLabels}
     <line id="szn-guide" y1="${padT}" y2="${H - padB}" stroke="#C4C4C4" stroke-width="1" style="display:none"/>
     <circle id="szn-dot" r="5" fill="#2F5DA8" stroke="#FFFFFF" stroke-width="1.5" style="display:none"/>
@@ -4179,7 +4250,7 @@ function drawSzenarienChart(el, baseSeries, pessimSeries, optimSeries) {
     const gx = X(best).toFixed(1), gy = Y(p.total).toFixed(1);
     guide.setAttribute("x1", gx); guide.setAttribute("x2", gx); guide.style.display = "";
     dot.setAttribute("cx", gx); dot.setAttribute("cy", gy); dot.style.display = "";
-    tip.innerHTML = `<b>${p.year}</b><br>Pess.: <b>${euro(pp.total)}</b><br>Basis: <b>${euro(p.total)}</b><br>Opt.:  <b>${euro(po.total)}</b>`;
+    tip.innerHTML = `<b>${p.year}</b><br>Pess.: <b>${euro(pp.total)}</b><br>Basis: <b>${euro(p.total)}</b><br>Opt.:  <b>${euro(po.total)}</b><br>Netto KeSt: <b>${euro(p.netTotal)}</b><br>${showReal ? `Real: <b>${euro(p.realNetTotal)}</b><br>` : ""}`;
     tip.style.left = Math.max(80, Math.min(rect.width - 130, (Number(gx) / W) * rect.width)) + "px";
     tip.style.top = "8px"; tip.style.display = "";
   });
@@ -4237,18 +4308,28 @@ function renderSimSzenarien() {
   const totalHeute = assets.reduce((s, a) => s + a.value, 0);
 
   // Projektion (3 Pfade)
-  const baseS  = projectSzenarien(assets, horizont, 1.0);
-  const pessS  = projectSzenarien(assets, horizont, 0.7);
-  const optimS = projectSzenarien(assets, horizont, 1.3);
+  const baseS  = projectSzenarien(assets, horizont, "base");
+  const pessS  = projectSzenarien(assets, horizont, "pess");
+  const optimS = projectSzenarien(assets, horizont, "optim");
   const endBase = baseS[baseS.length - 1]?.total || 0;
+  const endNet  = baseS[baseS.length - 1]?.netTotal || 0;
+  const endReal = baseS[baseS.length - 1]?.realNetTotal || 0;
+  const endTax  = baseS[baseS.length - 1]?.taxPaid || 0;
+  const endCosts = baseS[baseS.length - 1]?.costsPaid || 0;
+  const cagr = horizont > 0 && totalHeute > 0 ? (Math.pow(endNet / totalHeute, 1 / horizont) - 1) * 100 : 0;
   const zuwachs = endBase - totalHeute;
 
   // KPIs
   setText("szn-heute", euro(totalHeute));
   setText("szn-prognose", euro(endBase));
+  setText("szn-netto", euro(endNet));
+  setText("szn-real", euro(endReal));
+  setText("szn-steuerkosten", "-" + euro(endTax + endCosts));
   setText("szn-horizont-label", String(horizont));
   const zwEl = document.getElementById("szn-zuwachs");
   if (zwEl) { zwEl.textContent = (zuwachs >= 0 ? "+" : "") + euro(zuwachs); zwEl.className = "v " + (zuwachs >= 0 ? "pos" : "neg"); }
+  const cagrEl = document.getElementById("szn-cagr");
+  if (cagrEl) { cagrEl.textContent = (cagr >= 0 ? "+" : "") + fmtNum(cagr, 1) + " % p.a."; cagrEl.className = "v " + (cagr >= 0 ? "pos" : "neg"); }
 
   // Horizont-Sidebar sync
   const hrSlider = document.getElementById("szn-horizont"); if (hrSlider && hrSlider.value != horizont) hrSlider.value = horizont;
@@ -4260,7 +4341,8 @@ function renderSimSzenarien() {
   syncInput("szn-inflation",       "inflation",       2.0);
 
   // Chart
-  drawSzenarienChart(document.getElementById("szn-chart"), baseS, pessS, optimS);
+  const showReal = document.getElementById("szn-show-real")?.checked || false;
+  drawSzenarienChart(document.getElementById("szn-chart"), baseS, pessS, optimS, showReal);
 
   // Asset-Gruppen
   let groupsHtml = "";
@@ -4356,6 +4438,31 @@ document.getElementById("szn-rendite-etf").addEventListener("change", (e) => { s
 document.getElementById("szn-rendite-immo").addEventListener("change", (e) => { sznSave("rendite_immo", numDE(e.target.value) || 2); });
 document.getElementById("szn-rendite-liquide").addEventListener("change", (e) => { sznSave("rendite_liquide", numDE(e.target.value) || 1.5); });
 document.getElementById("szn-inflation").addEventListener("change", (e) => { sznSave("inflation", numDE(e.target.value) || 2); });
+
+// Annahmen-Profile
+const SIM_PROFILE = {
+  konservativ:  { rendite_etf: 4.0, rendite_immo: 1.0, rendite_liquide: 1.0, inflation: 2.5 },
+  mittel:       { rendite_etf: 6.0, rendite_immo: 2.0, rendite_liquide: 1.5, inflation: 2.0 },
+  optimistisch: { rendite_etf: 8.0, rendite_immo: 3.0, rendite_liquide: 2.5, inflation: 1.5 },
+};
+
+document.getElementById("szn-sidebar").addEventListener("click", (e) => {
+  const btn = e.target.closest(".szn-profil-btn");
+  if (!btn) return;
+  const p = SIM_PROFILE[btn.getAttribute("data-profil")];
+  if (!p) return;
+  Object.assign(simSettings, p);
+  const sync = (id, val) => { const el = document.getElementById(id); if (el) el.value = fmtNum(val); };
+  sync("szn-rendite-etf",     p.rendite_etf);
+  sync("szn-rendite-immo",    p.rendite_immo);
+  sync("szn-rendite-liquide", p.rendite_liquide);
+  sync("szn-inflation",       p.inflation);
+  debounceSaveSim();
+  renderSimSzenarien();
+});
+
+// Real-Toggle
+document.getElementById("szn-show-real")?.addEventListener("change", () => renderSimSzenarien());
 
 // Sidebar Inputs
 document.getElementById("sim-horizont").addEventListener("input", (e) => {

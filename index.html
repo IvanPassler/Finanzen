@@ -464,10 +464,19 @@
       <div class="sim-layout">
         <!-- LEFT: Ausgangssituation + Aktionen -->
         <div class="sim-main" id="szn-main">
-          <div class="cards cards-4" style="margin-bottom:16px" id="szn-kpis">
+          <div class="sim-disclaimer">
+            ⚠ Vereinfachte Modellrechnung unter frei wählbaren Annahmen – keine Anlage-, Steuer- oder Finanzberatung. Zukünftige Renditen, Inflation und Steuern sind unsicher.
+          </div>
+          <div class="cards cards-4" style="margin-bottom:10px">
             <div class="stat"><div class="k">Vermögen heute</div><div class="v" id="szn-heute">–</div></div>
-            <div class="stat"><div class="k">Projektion in <span id="szn-horizont-label">15</span> J. (Basis)</div><div class="v pos" id="szn-prognose">–</div></div>
-            <div class="stat"><div class="k">Wertzuwachs</div><div class="v" id="szn-zuwachs">–</div></div>
+            <div class="stat"><div class="k">Brutto in <span id="szn-horizont-label">15</span> J.</div><div class="v pos" id="szn-prognose">–</div></div>
+            <div class="stat"><div class="k">Netto nach KeSt &amp; Kosten</div><div class="v pos" id="szn-netto">–</div></div>
+            <div class="stat"><div class="k">Real (inflationsber.)</div><div class="v" id="szn-real">–</div></div>
+          </div>
+          <div class="cards cards-4" style="margin-bottom:16px">
+            <div class="stat"><div class="k">Brutto-Zuwachs</div><div class="v" id="szn-zuwachs">–</div></div>
+            <div class="stat"><div class="k">CAGR Netto</div><div class="v" id="szn-cagr">–</div></div>
+            <div class="stat"><div class="k">Steuern &amp; Kosten ges.</div><div class="v neg" id="szn-steuerkosten">–</div></div>
           </div>
           <div id="szn-assets"></div>
         </div>
@@ -478,8 +487,24 @@
         <!-- RIGHT: Projektion + Annahmen -->
         <div class="sim-sidebar" id="szn-sidebar">
           <h3 style="margin:0 0 14px;font-size:15px">Projektion &amp; Annahmen</h3>
+          <div class="sim-sb-section">
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Annahmen-Profil</div>
+            <div style="display:flex;gap:6px">
+              <button class="secondary szn-profil-btn" data-profil="konservativ" style="flex:1;font-size:12px;padding:5px 0">Konservativ</button>
+              <button class="secondary szn-profil-btn" data-profil="mittel" style="flex:1;font-size:12px;padding:5px 0">Mittel</button>
+              <button class="secondary szn-profil-btn" data-profil="optimistisch" style="flex:1;font-size:12px;padding:5px 0">Optimistisch</button>
+            </div>
+          </div>
           <div class="chart-wrap" id="szn-chart" style="min-height:180px;margin-bottom:16px"></div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Band = ±30 % Renditevariation (pess./opt.)</div>
+          <div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;font-size:12px;color:var(--muted);flex-wrap:wrap">
+            <span><span style="display:inline-block;width:22px;height:2.5px;background:#2F5DA8;vertical-align:middle;margin-right:5px"></span>Brutto</span>
+            <span><span style="display:inline-block;width:22px;height:2.5px;background:#2E7D32;vertical-align:middle;margin-right:5px"></span>Netto KeSt</span>
+            <span><span style="display:inline-block;width:22px;height:0;border-top:2px dashed #2E7D32;vertical-align:middle;margin-right:5px"></span>Real</span>
+            <label style="margin-left:auto;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text)">
+              <input type="checkbox" id="szn-show-real"> Real anzeigen
+            </label>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Netto = nach 26 % KeSt (latent), 0,20 % Bollo + 0,20 % TER p.a. auf Depot. Band = asset-spezifisch (ETF pess./opt. ±50 %, Immo ±40 %).</div>
           <div class="sim-sb-section">
             <label>Horizont (Jahre)</label>
             <div style="display:flex;align-items:center;gap:10px">
@@ -504,13 +529,16 @@
             <input type="text" inputmode="decimal" id="szn-inflation" placeholder="2.0">
           </div>
           <div class="sim-sb-section" style="font-size:11px;color:var(--muted);line-height:1.6">
-            Freigesetztes Kapital aus Verkäufen fließt rechnerisch in Liquidität zurück (Tagesgeld-Rendite). Steuern auf Verkaufsgewinne werden vereinfacht nicht abgezogen.
+            Freigesetztes Kapital aus Verkäufen fließt in Liquidität zurück. KeSt 26 % wird bei Verkauf/Entnahme abgezogen. Bollo und TER werden jährlich auf das Depot-Vermögen angewendet.
           </div>
         </div>
       </div>
     </section>
 
     <section id="page-sim-ziele" class="hidden">
+      <div class="sim-disclaimer" style="margin-bottom:16px">
+        ⚠ Hochrechnungen sind Modellrechnungen unter frei wählbaren Annahmen – keine Anlage- oder Finanzberatung.
+      </div>
       <div class="cards cards-4" style="margin-bottom:16px">
         <div class="stat"><div class="k">Nötige Gesamtsparrate</div><div class="v" id="simz-req-sparrate">–</div></div>
         <div class="stat"><div class="k">Verfügbare Sparrate (Ø Netto)</div><div class="v" id="simz-verf-sparrate">–</div></div>
